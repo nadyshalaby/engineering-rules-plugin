@@ -1,0 +1,28 @@
+{
+  "name": "engineering-rules",
+  "version": "2.0.1",
+  "description": "The complete engineering law and working method as one progressive-disclosure skill: hard caps and zero-tolerance bans, the file and folder organization law, performance/security/test-scenario catalogs, an eight-phase workflow driven by a phase ledger that refuses to advance without its exit artifact, a run discipline (task start, phase boundaries, loop-backs, waiver limits, git safety, a law self-audit), six question banks, five review checks, the ship gate, and twelve ready-made design specs. 105 sections, loaded only when the phase calls for them.",
+  "author": {
+    "name": "Nady Shalaby",
+    "email": "nadyshalaby@gmail.com",
+    "url": "https://github.com/nadyshalaby"
+  },
+  "homepage": "https://github.com/nadyshalaby/engineering-rules-plugin",
+  "repository": "https://github.com/nadyshalaby/engineering-rules-plugin",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "skill",
+    "plugin",
+    "engineering-law",
+    "code-quality",
+    "hard-caps",
+    "code-review",
+    "workflow",
+    "phase-ledger",
+    "design-system",
+    "design-tokens",
+    "ship-gate",
+    "progressive-disclosure"
+  ]
+}

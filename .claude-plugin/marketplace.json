@@ -1,0 +1,30 @@
+{
+  "name": "engineering-rules-marketplace",
+  "description": "Local marketplace for the engineering-rules plugin, the engineering law and working method packaged as a single progressive-disclosure skill.",
+  "owner": {
+    "name": "Nady Shalaby",
+    "email": "nadyshalaby@gmail.com",
+    "url": "https://github.com/nadyshalaby"
+  },
+  "plugins": [
+    {
+      "name": "engineering-rules",
+      "source": "./",
+      "description": "The engineering law and working method as one skill. The always-on law and the run discipline load with the skill; the remaining 98 sections are read only when the phase calls for them.",
+      "version": "2.0.1",
+      "category": "workflow",
+      "keywords": [
+        "engineering-law",
+        "code-quality",
+        "hard-caps",
+        "code-review",
+        "phase-ledger",
+        "workflow",
+        "design-system",
+        "ship-gate",
+        "progressive-disclosure"
+      ],
+      "license": "MIT"
+    }
+  ]
+}
