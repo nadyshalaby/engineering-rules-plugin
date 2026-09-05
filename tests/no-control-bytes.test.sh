@@ -3,14 +3,12 @@
 # a reference is an escape sequence that lost its backslash on the way in, and a shell
 # snippet carrying one fails silently. Run: bash tests/no-control-bytes.test.sh
 # Needs git and perl. Tab, newline and carriage return are the only control bytes allowed.
-set -u
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=harness.sh
+. "$(dirname "${BASH_SOURCE[0]}")/harness.sh"
 set -o pipefail
-here=${BASH_SOURCE[0]%/*}
-[ "$here" = "${BASH_SOURCE[0]}" ] && here=.
-cd "$(git -C "$here" rev-parse --show-toplevel)" || exit 1
+cd "$(repo_root)" || exit 1
 command -v perl >/dev/null || { printf 'FAIL perl not found, nothing was scanned\n'; exit 1; }
-failures=0
-count=0
 
 # Runs once over every tracked file and prints "path<TAB>line" for each offending line;
 # a file perl cannot open is a scan failure, never a pass.
@@ -29,5 +27,4 @@ test_no_control_bytes_in_tracked_files() {
 }
 
 test_no_control_bytes_in_tracked_files
-printf '%s\n' "$((count - failures)) passed, $failures failed"
-[ "$failures" -eq 0 ]
+report

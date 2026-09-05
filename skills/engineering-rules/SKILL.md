@@ -3,8 +3,9 @@ name: engineering-rules
 description: >-
   The complete engineering law and working method for shipping code: hard caps on function,
   file, parameter and nesting size; zero-tolerance bans on suppressions, non-null assertions,
-  empty catches, bare Error throws and inline types; the file and folder organization law;
-  performance, security and test-scenario catalogs; an eight-phase workflow (clarify, plan,
+  empty catches, bare Error throws, inline types, focused tests and debug artifacts; the file
+  and folder organization law; performance, security, test-scenario and clean-code catalogs;
+  an eight-phase workflow (clarify, plan,
   spec review, implement, debug, verify, review, finish) with a phase ledger that refuses to
   advance; six question banks; five review checks; the ship gate; a frontend design law and
   twelve ready-made design specs. Use it whenever you are about to write, change, refactor,
@@ -50,7 +51,7 @@ per-section table.
 | **Substantive ask** | Everything that is not trivial: any edit, creation, deletion, move, rename or configuration change. |
 | **Read-only ask** | A question or inspection that will not lead to an edit in this task. If it does lead to one, the ledger opens at that moment. |
 | **UI-bearing** | Any change to markup, styles, tokens, components, screens, layout, motion, copy shown in a UI, or visual assets, on web or native. |
-| **Production code** | Every file that ships. Test files (`*.test.*`, `*.spec.*`, `tests/`, `__tests__/`), generated files and migrations are not production code for the purposes of the bans in 1.1, and nothing else is exempt. |
+| **Production code** | Every file that ships. Test files (`*.test.*`, `*.spec.*`, `*_test.*`, `*_spec.*`, `test_*`, and anything under `tests/`, `__tests__/`, `test/` or `spec/`), generated files and migrations are not production code for the purposes of the bans in 1.1, with two exceptions written for test files: the suppression ban still holds there (its sole exception is in 1.1), and the focused-or-skipped-test ban exists only there. Nothing else is exempt. |
 | **Domain code** | Services, use-cases, repositories, business rules, validators, jobs and workers. Not scripts, not tests, not CLI glue, not presentation. |
 | **Hot path** | Anything run per request, per render, per row, per job or per frame, or inside a loop over data-sized input. |
 | **Touched scope** | `git diff --name-only <base>..HEAD -- . ':(exclude)docs/work/*'`, where `<base>` is the commit recorded at task start. |
@@ -82,11 +83,13 @@ per-section table.
 
 **Bans, zero tolerance, in production code.**
 
-- **0 lint or type suppressions**: no `biome-ignore`, `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck` or their equivalents in any language. Sole exception: `@ts-expect-error` in a test file over deliberately invalid input, with a comment saying WHY. These tokens stay literal in this file because they are the strings the scouts grep for.
+- **0 lint, type or coverage suppressions**: no `biome-ignore`, `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, no coverage-ignore marker (`istanbul ignore`, `c8 ignore`, `v8 ignore`), and no equivalent in any other language or tool. Sole exception: `@ts-expect-error` in a test file over deliberately invalid input, with a comment saying WHY; test files are exempt from the other bans in this list, never from this one. These tokens stay literal here because they are among the strings the scouts grep for; 9.5 carries the full list and 16.7 the per-language analogs.
 - **0 non-null `!` assertions.**
-- **0 empty catches.** `catch (e) {}` and every equivalent is banned unconditionally.
+- **0 empty catches.** `catch (e) {}` and every equivalent is banned unconditionally: a catch holding only a comment, a `.catch(() => {})` on a promise, an `except: pass`, an error discarded into `_`.
 - **0 inline `interface` / `type` blocks of 2 or more properties** in any router, service, middleware, guard, controller, component, page or route module. Extract to a `*.types` file in the feature's `types/` folder.
-- **0 bare `Error` throws** in domain code. Throw a domain-specific exception subclass.
+- **0 bare `Error` throws** in domain code, `Error` or any other built-in error class (`TypeError`, `RangeError`, a JVM or .NET `RuntimeException`), with or without `new`, and none of its cousins: no thrown string, number or object literal, no `Promise.reject(new Error(...))`. Throw a domain-specific exception subclass.
+- **0 focused or skipped tests committed.** No `.only`, `fit` or `fdescribe`; no `.skip`, `xit`, `xdescribe`, `test.todo` or a language equivalent without a ticket or an owner on the same line. A focused test silently drops the rest of the suite. This ban is written for test files, which the other bans exempt.
+- **0 debug artifacts.** No `debugger` statement in production code; no `console.*` call in domain code, which logs through the project's logger.
 
 **File separation, one thing per file.**
 
@@ -106,7 +109,20 @@ per-section table.
 - **Edge cases.** Handle null, undefined, empty, concurrent and partial-failure paths. Do not hope.
 - **Comments.** Default to none. Write one only when the WHY is non-obvious.
 
-**Refuse on sight.** "Add error handling later"; a `TODO` with no owner; a fallback for a hypothetical future requirement; a backwards-compat shim for code that is never deployed; a half-finished implementation; re-exporting types "for convenience"; a `// removed: <X>` comment for deleted code.
+**The clean-code floor, ten lines distilled from the clean-code catalog (section 3.4).** Judged, not grepped; the quality-and-plan check (12.7) cites the catalog row.
+
+1. **A function does or answers, never both.** A query has no side effect; a command returns nothing it did not change.
+2. **No flag parameters.** A boolean that switches behaviour is two functions, or a named option.
+3. **Inputs are never mutated.** Return a new value; mark shared data read-only; mutate only what you own.
+4. **Fail fast at the boundary.** Validate on entry, throw at the first bad state, never carry a bad value inward.
+5. **One level of abstraction per function.** Orchestration and byte-pushing never share a body.
+6. **Talk to what you hold.** No `a.b().c().d()` into another object's internals; ask the nearest object.
+7. **Every error keeps its cause and its context.** Wrap and rethrow with `cause`; never log-and-continue where the caller cannot proceed.
+8. **Every promise is awaited, returned or handled.** No floating promise; no sleep standing in for a signal.
+9. **Composition before inheritance.** No hierarchy deeper than two, none built to share code.
+10. **A closed set is a type, not a string.** Enum or union for statuses, kinds and ids; a domain value is never a bare primitive.
+
+**Refuse on sight.** "Add error handling later"; a `TODO` with no owner; a fallback for a hypothetical future requirement; a backwards-compat shim for code that is never deployed; a half-finished implementation; re-exporting types "for convenience"; a `// removed: <X>` comment for deleted code; a block of commented-out code.
 
 ### 1.2 [rule] Expert mindset
 
@@ -268,7 +284,7 @@ Every section is a file in `references/`. The number is the section id; "section
 | **0** | Orientation and the full section table | When the group table below is not enough. |
 | **1** | Always-on law | Inlined above. The reference files are stubs, except 1.5, which carries the claim-integrity procedures. |
 | **2** | Doctrine: code quality (2.1), file and folder law (2.2) | Before writing code, and before creating any file or folder. |
-| **3** | Catalogs: performance (3.1), security (3.2), test scenarios (3.3) | Look up an ID or a fix direction; never read end to end. |
+| **3** | Catalogs: performance (3.1), security (3.2), test scenarios (3.3), clean code (3.4) | Look up an ID or a fix direction; never read end to end. |
 | **4** | Routes: how one is picked (4.1), quick mode (4.2), full mode (4.3) | At task start. |
 | **5** | Working references: the ledger (5.1), the goal anchor (5.2), voice (5.3), full mindset (5.4), delegation (5.5) | 5.1 and 5.2 at task start; 5.3 governs every chat line; 5.4 at Phase 1; 5.5 before the first helper is sent, and again after a compaction. |
 | **6** | Phase 1, Clarify: the phase (6.1), the question contract (6.2), the banks (6.3–6.11), domain mechanisms (6.12), the repo brief (6.13), investigating code (6.14) | When a task opens. |

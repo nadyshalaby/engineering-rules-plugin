@@ -17,8 +17,8 @@ self-audit before any task is called done.
 | Level | What | Cost |
 |---|---|---|
 | 1 | `name` + `description` | Always in context, about 100 words |
-| 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.7`), the route table, the group map | Loads when the skill triggers, about 280 lines |
-| 3 | `references/**`: all 106 sections, one file each | Only when a phase names one |
+| 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.7`), the route table, the group map | Loads when the skill triggers, about 300 lines |
+| 3 | `references/**`: all 107 sections, one file each | Only when a phase names one |
 
 The seven always-on sections live in `SKILL.md` because they bind from the moment the skill
 loads, and a reference you have to go fetch is a reference you might not fetch. The files
@@ -64,7 +64,7 @@ engineering-rules-plugin/
 │           ├── 00-orientation/          how the sections are organised, the full section map
 │           ├── 01-always-on-law/        stubs for 1.1 to 1.7 (canonical text is in SKILL.md), 1.5 procedures
 │           ├── 02-doctrine/             code quality, file and folder law
-│           ├── 03-catalogs/             performance, security, test scenarios
+│           ├── 03-catalogs/             performance, security, test scenarios, clean code
 │           ├── 04-routes/               quick mode, full mode, and how one is picked
 │           ├── 05-working-references/   phase ledger, goal anchor, voice, mindset, delegation
 │           ├── 06-phase-1-clarify/      question contract, six question banks, repo brief
@@ -80,7 +80,9 @@ engineering-rules-plugin/
 │           ├── 16-other-routes/         shaping, triage, audit, walkthrough, skill authoring, update log
 │           └── 17-ready-made-specs/     twelve complete DESIGN.md files
 ├── tests/
-│   ├── law-scout.test.sh                runs the law scout's block against planted bans
+│   ├── catalog-ids.test.sh              every catalog id and every coarse rule id cited anywhere has a row
+│   ├── harness.sh                       shared by the three tests: repo root, scratch dir, assertions
+│   ├── law-scout.test.sh                runs the law scout's block against planted bans and their equivalents
 │   └── no-control-bytes.test.sh         fails on any raw control byte in a tracked file
 └── README.md
 ```
@@ -95,11 +97,16 @@ Every file here stays under the 500-line cap the law sets for code, `SKILL.md` i
 Section 17's specs are the largest at about 470 lines. If a section ever needs more, it is
 split, not grown.
 
-Three checks run against the plugin itself. `bash tests/no-control-bytes.test.sh` fails on
+Four checks run against the plugin itself. `bash tests/no-control-bytes.test.sh` fails on
 any raw control byte in a tracked file: a `\0`, `\b` or `\e` that lost its backslash on the
 way in reads fine and runs wrong, which is how 2.0.1 and 2.1.0 shipped a law scout that
 scanned nothing. `bash tests/law-scout.test.sh` runs the law scout's block straight out of
-`9.5` against a throwaway repo with planted bans and expects every hit.
+`9.5` against a throwaway repo with one planted file per ban and per banned equivalent, and
+expects every hit under its own rule id, every allowed line left alone and every secret
+redacted. `bash tests/catalog-ids.test.sh` fails on any `perf.*`, `sec.*`, `test.*` or
+`style.*` id cited anywhere with no row in its catalog, and on any coarse rule id (`ban.*`,
+`cap.*`, `clean.*` and the rest) with no row in `16.4`, and proves it can fail by planting
+one of each. The three share `tests/harness.sh`.
 `bash hooks/tests/<name>.test.sh` covers the two hook scripts.
 
 ## Install
@@ -192,6 +199,23 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.2.0**: the clean-code catalog (`3.4`) is new, 99 judged rows with stable
+  `style.<domain>.<slug>` ids across naming, functions, comments, structure, objects, error
+  handling, boundaries, classes, async and test hygiene, plus the community rules this law
+  deliberately does not adopt; `2.1` is extended to match and `SKILL.md` 1.1 carries its
+  ten-line floor. The always-on bans grew by focused or unticketed skipped tests, debug
+  artifacts and coverage-ignore markers, and the test-file exception was narrowed to the one
+  1.1 names. The law scout (`9.5`) now catches the suppression siblings (`oxlint`, `deno`,
+  `tslint`, `stylelint`, Flow, Sonar, JetBrains), comment-only and multi-line empty catches
+  and the promise `.catch(() => {})`, `throw` without `new`, thrown literals and
+  `reject(new Error(`, the cross-language analogs, owner-aware debt markers, and redacts every
+  secret it finds; inline types are scanned in the five scoped roles only, `console.*` in the
+  domain roles only, focused tests in test files only, where a test file is now named by
+  every language's convention (`_test.go`, `_spec.rb`, `test_*.py`, a `src/test/` tree), and
+  the non-null `!` only where the language has the operator; every line the scout prints
+  starts with its rule id. `16.4`, `16.5`, `16.6`, `16.7`,
+  `16.3`, `16.2`, `13.1`, `13.2`, `12.7`, `11.2` and `9.3` follow, and
+  `tests/catalog-ids.test.sh` is new.
 - **2.1.1**: the law scout's shell block in `9.5` carried raw control bytes where `\n`, `\0`
   and `\b` were typed, so in 2.0.1 and 2.1.0 every construct-ban row came back empty and the
   readable count read zero without scanning; re-run any table built from it. The path list is
