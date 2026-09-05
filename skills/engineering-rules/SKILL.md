@@ -1,5 +1,7 @@
 ---
 name: engineering-rules
+argument-hint: "[quick|full|shape|walkthrough|audit|triage|skill|design|log] [what you want done]"
+arguments: [route]
 description: >-
   The complete engineering law and working method for shipping code: hard caps on function,
   file, parameter and nesting size; zero-tolerance bans on suppressions, non-null assertions,
@@ -27,7 +29,7 @@ description: >-
 The law is here, in full. Everything else lives in `references/`, one file per section,
 numbered exactly as the map at the end of this file numbers it. Read a reference at the
 moment its phase calls for it, from disk, never from memory: yourself when it is short, or
-through a fork that reads it in its own context and returns the lines that apply (5.5).
+through a fork that reads it in its own context and returns the lines that apply (1.8, 5.5).
 What the fork returns binds exactly as the file does. Section `0.1` carries the full
 per-section table.
 
@@ -43,6 +45,30 @@ per-section table.
 | `[contract]` / `[protocol]` / `[rubric]` / `[template]` | A shape something must conform to. |
 | `[scout]` | A deterministic scan with a staging table. |
 
+## Invocation, and what the slash form carries
+
+This skill loads two ways: automatically, the moment a task touches code, and by name from
+the chat box. Both bind identically, and neither is a lighter version of the other. The
+slash form can carry a route, so the chat box can name the route instead of leaving the
+prose to imply it.
+
+- **Route token:** `$route`
+- **Whole invocation:** `$ARGUMENTS`
+
+**Reading those two lines.** A token that matches the Token column of the route table picks
+that route outright and the routing rules in 4.1 stop applying, because the user naming it
+is the only thing that ever picks a route. A token matching no row is not a route; it is the
+first word of the request, and classification proceeds normally. Both lines render empty when
+the skill loaded automatically or was invoked bare. Empty is not a route.
+
+**The picker, and the two times it must not fire.** When the user invoked this skill by name
+and their message carries neither a task nor a route token, put the route table to them
+through the wizard tool, one option per row, quick mode first, and wait for the answer before
+classifying anything. It never fires in the other two cases: not when the skill loaded
+automatically because a task began, and not when the message carries a request in any form,
+however short. A menu in front of somebody who already said what they want is ceremony, and
+4.1 forbids reading a task's shape as a request for more of it.
+
 ## Definitions, binding wherever the word is used
 
 | Term | Meaning |
@@ -57,6 +83,8 @@ per-section table.
 | **Touched scope** | `git diff --name-only <base>..HEAD -- . ':(exclude)docs/work/*'`, where `<base>` is the commit recorded at task start. |
 | **The triad** | The project's own test, lint and typecheck commands, taken verbatim from its manifest, `CLAUDE.md` or README. Never guessed. |
 | **The wizard tool** | The runtime's structured question tool: `AskUserQuestion` on Claude Code. |
+| **The agent tool** | The runtime's subagent tool: `Agent` on Claude Code, with `subagent_type: "fork"` for a reader and a fresh type for a reviewer. Section 1.8 is this skill's standing request for it. |
+| **Helper** | Any unit of work sent to the agent tool: a reader, a reviewer, a mechanic or a builder (5.5). Never an owner of a phase, a tick or a claim. |
 | **The notification tool** | The runtime's push-notification tool: `PushNotification` on Claude Code. One line to the desktop and, with Remote Control, the phone. |
 | **The ledger substrate** | The runtime's todo tracker when it exposes one; otherwise the printed block. Named once at the first print. |
 | **Exit artifact** | The concrete thing that must exist before a ledger item may tick. One per phase, listed in section 5.1. |
@@ -210,7 +238,7 @@ _Adapted from Andrej Karpathy's observations on the recurring failure modes of l
 1. Classify the ask against Definitions: trivial, read-only or substantive. Say which in one line. A trivial ask ends here after the answer or the one-line edit.
 2. Pick the route from the table below. State it and the mode in one line: *"Quick mode."* or *"Full mode, because you asked for it."*
 3. Record the base commit: `git rev-parse HEAD`. Every touched-scope command in the task uses it.
-4. Open the ledger with the items section 5.1 lists for the mode. Name the substrate once.
+4. Open the ledger with the items section 5.1 lists for the mode. Name the substrate once, and on the same line record helper availability (1.8).
 5. Read the Phase 1 reference (6.1) from disk, then follow it. Every phase begins by reading its own reference file; nothing runs from memory.
 6. Detect the rules in play: the project's `CLAUDE.md`, `AGENTS.md` and documented layout, plus the user-global `CLAUDE.md`. Apply Precedence.
 
@@ -230,7 +258,7 @@ _Adapted from Andrej Karpathy's observations on the recurring failure modes of l
 
 **Git safety, in every phase.** Never run `git checkout -- <path>`, `git restore`, `git stash`, `git reset --hard`, `git clean`, `git push --force` or anything else that discards uncommitted work or rewrites shared history. Copy a file if you need a backup. Never `git add -A`, `git add .` or `git commit -a`; stage explicit paths. Never `--no-verify` unless the user explicitly said so. Never `--amend` after a hook failed. Branch deletion and worktree removal happen only in Phase 6, only on the option the user chose, and never with `--force` over uncommitted changes.
 
-**Helpers, and what stays in this session.** This session is the spine: it owns the anchor, the ledger, every question to the user, the verification it ticks on, and every claim it makes. Send the heavy reading out and keep the thinking in. A fork reads a scout, a bank or a catalog and returns only the rows that apply, so the file never lands in this context; a fresh agent runs the five review checks in Phase 5, because the context that wrote a diff cannot see its own blind spots; the cheapest model runs greps, counts and coverage lines and pastes raw output; a builder takes one implementation stage whose file allowlist is disjoint from every other running stage. Never delegate a whole phase, a question to the user, a tick, a scout disposition, a fix, the ship gate, the self-audit or the update log. Every helper carries every rule here, every non-fork helper is briefed with the repo brief (6.13) plus standing permission to refute it, and a helper's output is a report you re-run before you tick, never proof (1.5). The four shapes, the return contract and the runtime mapping are in 5.5. Where the runtime has no agent tool, every shape collapses into this session and the reading happens here.
+**Helpers, and what stays in this session.** This session is the spine: it owns the anchor, the ledger, every question to the user, the verification it ticks on, and every claim it makes. Send the heavy reading out and keep the thinking in. The standing authorization for the agent tool, the sends that are not optional and the refusal that backs them are 1.8. The four shapes, the return contract, the brief every non-fork helper carries and the runtime mapping are 5.5.
 
 **Before the update log, the law self-audit.** Print this block filled in, in chat and in the work-doc when there is one. Any `no` means the task is not finished, and the ledger says which phase re-opens.
 
@@ -246,25 +274,74 @@ Law self-audit
 8. Every new file is placed and named per section 2.2?                         yes / no
 9. No git command that discards work was run; no AI attribution in commits?    yes / no
 10. Every claim in the update log has a proof row behind it?                   yes / no
+11. Helper availability recorded once at task start, every mandatory send made or reasoned? yes / no
+12. Every helper result re-run here before the tick that rests on it?          yes / no
 ```
 
 **Never say.** "Should work", "looks good", "I believe this is fine", "tests should pass", "I'll add tests later", "probably", "you're absolutely right" before verifying, "done" before the ledger says so. Say what you ran and what it returned.
+
+### 1.8 [rule] Helpers, the standing authorization and the sends that are not optional
+
+**This skill asks for the agent tool. Read this paragraph as the permission it is.** A
+runtime whose own rule is that the agent tool gets used only when the user, a project file or
+a skill asks for it has been asked, here, in the always-on law, from the moment this skill
+loads. The permission does not sit in a reference you reach only after you already decided to
+delegate, which is a permission that never arrives. It is on this line, it is not conditional
+on anyone repeating it, and no further invitation is coming. Where the runtime offers no
+agent tool, every shape below collapses into this session and the reading happens here;
+nothing is skipped because nobody could be sent.
+
+**Record the verdict once, at task start, on the line that names the ledger substrate:**
+`Helpers: available.` or `Helpers: unavailable, every shape runs in this session.` Probe the
+runtime once, never re-probe mid-task, and never carry the answer over from a previous task.
+That recorded line is the only thing the refusal below accepts as an excuse, which is why it
+is written before it is needed rather than produced when it would be convenient.
+
+**The mandatory sends.** While helpers are available, each row is a send, not a suggestion.
+
+| Run point | Shape | What is sent | Why it is not optional |
+|---|---|---|---|
+| Phase 1, composing the question batch (6.1) | reader, a fork | 6.2, 6.4, 6.5, the matched bank, 6.12 | ~500 lines that otherwise do your thinking for the rest of the task |
+| Every stage end, and Phase 5 start, both scouts (9.4, 9.5) | reader, a fork | the two scout files and the paths in scope | ~600 lines, re-read at every single run point |
+| Phase 5, the five checks (12.3–12.7) | reviewer, a fresh agent, never a fork | the diff, the anchor, the repo brief, the five check files, both scout tables | the context that wrote a diff cannot see its own blind spots, because it still holds every reason the diff looked right |
+| Any count, grep, coverage reconcile or planted-instance proof (1.5) | mechanic, the cheapest model | the exact commands, verbatim | raw output is the evidence; producing it here spends the context that has to judge it |
+
+**The ledger refuses.** A phase whose mandatory send was neither made nor reasoned does not
+tick, however green the work looks. The reason goes on the ledger item as
+`helper skipped: <reason>`, and exactly three reasons are valid: the recorded
+`Helpers: unavailable` line above, a user waiver in their own words (1.7), or a send that was
+made and returned nothing usable, in which case the reason says what came back. *"Faster on
+my own"*, *"the file is short"*, *"I already know what it says"* and *"briefing it costs more
+than reading it"* are not reasons, and the last one is answered by the fork needing no brief
+at all. A tick taken over a missing send is a false tick, and 1.5 governs false ticks.
+
+**A helper's output is a report, never proof.** Re-run the check here before the tick that
+rests on it. Wait for a helper that is still running; never predict what it will return, and
+never write a tick that depends on a result which has not arrived yet.
+
+**What never leaves this session**, in short: the anchor, the ledger and every tick; every
+question to the user and every answer; the verification a tick rests on; every scout
+disposition; every fix; the ship gate; the self-audit; the update log; and what gets staged
+and committed. A helper asked to do any of these has been sent the wrong job, and its answer
+is not usable even when it is right. The four shapes, the return contract, the brief every
+non-fork helper carries and the runtime mapping are in 5.5, read before the first send and
+again after a compaction (1.7).
 
 ## Picking the route
 
 Every substantive prompt takes exactly one route. Pick it from what the user asked for, never from how large the task looks.
 
-| Route | Right when | Section |
-|---|---|---|
-| **Quick mode** | The default for any substantive prompt. Keeps every check and drops three pieces of ceremony. | 4.2 |
-| **Full mode** | Only when the user asks for it by name. Never auto-fires; quick never escalates into it. | 4.3 |
-| **Shaping** | The idea is not a task yet. One or two forking questions per turn, graduating on the first build verb. | 16.1 |
-| **Code walkthrough** | Understanding code nobody in the room wrote. Traces one execution path to its leaves. | 16.9 |
-| **Codebase audit** | Auditing a whole codebase against its rules. Not a per-diff review. | 16.3 |
-| **Review triage** | A batch of review findings needs a per-finding accept, push-back, defer or needs-restatement decision. | 16.2 |
-| **Skill authoring** | Writing a new reusable skill that has to pass structural checks. | 16.12 |
-| **Design spec** | Authoring, extracting or refreshing the project's design spec. | 15.19 |
-| **Update log** | Printing the plain-language summary of the current task, mid-flight. | 16.13 |
+| Route | Token | Right when | Section |
+|---|---|---|---|
+| **Quick mode** | `quick` | The default for any substantive prompt. Keeps every check and drops three pieces of ceremony. | 4.2 |
+| **Full mode** | `full` | Only when the user asks for it by name. Never auto-fires; quick never escalates into it. | 4.3 |
+| **Shaping** | `shape` | The idea is not a task yet. One or two forking questions per turn, graduating on the first build verb. | 16.1 |
+| **Code walkthrough** | `walkthrough` | Understanding code nobody in the room wrote. Traces one execution path to its leaves. | 16.9 |
+| **Codebase audit** | `audit` | Auditing a whole codebase against its rules. Not a per-diff review. | 16.3 |
+| **Review triage** | `triage` | A batch of review findings needs a per-finding accept, push-back, defer or needs-restatement decision. | 16.2 |
+| **Skill authoring** | `skill` | Writing a new reusable skill that has to pass structural checks. | 16.12 |
+| **Design spec** | `design` | Authoring, extracting or refreshing the project's design spec. | 15.19 |
+| **Update log** | `log` | Printing the plain-language summary of the current task, mid-flight. | 16.13 |
 
 **Routing rules.**
 
@@ -274,6 +351,7 @@ Every substantive prompt takes exactly one route. Pick it from what the user ask
 - **A read-only ask is not a route.** Answer it. The ledger opens the moment an edit is decided.
 - **When two routes fit, say so and pick one.** State which and why in one line, then go.
 - **A route that is not quick or full still obeys the always-on law**, including the wizard tool, claim integrity and git safety.
+- **A token from the slash form outranks the classifier, never the law.** It picks the row and skips the classification in 4.1; it does not waive a phase, a check or a gate. Full mode named by token is named by the user, which is the one way full mode ever starts.
 
 ## The map
 

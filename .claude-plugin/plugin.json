@@ -1,7 +1,7 @@
 {
   "name": "engineering-rules",
-  "version": "2.2.0",
-  "description": "The complete engineering law and working method as one progressive-disclosure skill: hard caps and zero-tolerance bans, the file and folder organization law, performance/security/test-scenario/clean-code catalogs, an eight-phase workflow driven by a phase ledger that refuses to advance without its exit artifact, a run discipline (task start, phase boundaries, loop-backs, waiver limits, git safety, a law self-audit), six question banks, five review checks, the ship gate, and twelve ready-made design specs. 107 sections, loaded only when the phase calls for them.",
+  "version": "2.3.0",
+  "description": "The complete engineering law and working method as one progressive-disclosure skill: hard caps and zero-tolerance bans, the file and folder organization law, performance/security/test-scenario/clean-code catalogs, an eight-phase workflow driven by a phase ledger that refuses to advance without its exit artifact, a run discipline (task start, phase boundaries, loop-backs, waiver limits, git safety, a law self-audit), a standing agent-tool authorization with four mandatory sends and a ledger that refuses to tick over a skipped one, six question banks, five review checks, the ship gate, and twelve ready-made design specs. 108 sections, loaded only when the phase calls for them.",
   "author": {
     "name": "Nady Shalaby",
     "email": "nadyshalaby@gmail.com",
@@ -23,6 +23,8 @@
     "design-system",
     "design-tokens",
     "ship-gate",
-    "progressive-disclosure"
+    "progressive-disclosure",
+    "delegation",
+    "subagents"
   ]
 }

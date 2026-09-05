@@ -18,7 +18,7 @@ self-audit before any task is called done.
 |---|---|---|
 | 1 | `name` + `description` | Always in context, about 100 words |
 | 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.7`), the route table, the group map | Loads when the skill triggers, about 300 lines |
-| 3 | `references/**`: all 107 sections, one file each | Only when a phase names one |
+| 3 | `references/**`: all 108 sections, one file each | Only when a phase names one |
 
 The seven always-on sections live in `SKILL.md` because they bind from the moment the skill
 loads, and a reference you have to go fetch is a reference you might not fetch. The files
