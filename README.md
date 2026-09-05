@@ -18,7 +18,7 @@ self-audit before any task is called done.
 |---|---|---|
 | 1 | `name` + `description` | Always in context, about 100 words |
 | 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.7`), the route table, the group map | Loads when the skill triggers, about 280 lines |
-| 3 | `references/**`: all 105 sections, one file each | Only when a phase names one |
+| 3 | `references/**`: all 106 sections, one file each | Only when a phase names one |
 
 The seven always-on sections live in `SKILL.md` because they bind from the moment the skill
 loads, and a reference you have to go fetch is a reference you might not fetch. The files
@@ -51,6 +51,12 @@ engineering-rules-plugin/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
+├── hooks/
+│   ├── hooks.json                       Stop and Notification hooks, live the moment the plugin is installed
+│   ├── ledger-position.sh               the ledger heading both scripts read, kept in one place
+│   ├── progress-notify.sh               one log line per turn, desktop notification on a boundary or a wait
+│   ├── statusline.sh                    status line with the ledger position, opt-in by one settings line
+│   └── tests/                           fixture tests for both scripts: bash hooks/tests/<name>.test.sh
 ├── skills/
 │   └── engineering-rules/
 │       ├── SKILL.md                     the canonical always-on law, routes, map
@@ -60,7 +66,7 @@ engineering-rules-plugin/
 │           ├── 02-doctrine/             code quality, file and folder law
 │           ├── 03-catalogs/             performance, security, test scenarios
 │           ├── 04-routes/               quick mode, full mode, and how one is picked
-│           ├── 05-working-references/   phase ledger, goal anchor, voice, mindset
+│           ├── 05-working-references/   phase ledger, goal anchor, voice, mindset, delegation
 │           ├── 06-phase-1-clarify/      question contract, six question banks, repo brief
 │           ├── 07-phase-2-plan/         gate, worktree, work-doc template and rules
 │           ├── 08-phase-2-5-spec-review/
@@ -111,7 +117,10 @@ so later edits are not seen until the copy is refreshed, and the refresh only ha
 the version changes. After editing anything:
 
 1. bump `version` in both `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
-   (same value in both), and for the GitHub source commit and push it;
+   (same value in both), re-count the sections with
+   `find skills/engineering-rules/references -name '*.md' | wc -l` (that number goes in
+   `plugin.json` and the table above; minus the seven always-on stubs, in
+   `marketplace.json`), and for the GitHub source commit and push it;
 2. run `claude plugin marketplace update engineering-rules-marketplace`;
 3. run `claude plugin update engineering-rules@engineering-rules-marketplace`;
 4. start a new session, or run `/reload-plugins` in the current one.
@@ -129,6 +138,38 @@ ln -s ~/engineering-rules-plugin/skills/engineering-rules ~/.claude/skills/engin
 If the marketplace copy is installed as well, remove it first with
 `claude plugin uninstall engineering-rules@engineering-rules-marketplace`.
 
+## Progress while you are away
+
+Installing the plugin installs two hooks from `hooks/hooks.json`; nothing to configure.
+
+- **`Stop`**, every time Claude finishes a turn: one line goes to `~/.claude/progress.log`
+  (`time | project | stop | (3 of 6, Phase 4) | first line of the reply`), and when that turn
+  ends on a ledger re-print a desktop notification says so. Back from a break, run
+  `tail ~/.claude/progress.log`.
+- **`Notification`**, whenever Claude is blocked on you (a permission prompt, a question, an
+  idle wait): a desktop notification saying what it is waiting for, and a `waiting` log line.
+- **Your phone.** The ledger rule (`1.4`, `5.1`) sends every tick through Claude Code's
+  `PushNotification` tool, which Remote Control delivers to the mobile app. Add
+  `"inputNeededNotifEnabled": true` to `~/.claude/settings.json` to also be pushed when a
+  permission prompt or a question is waiting.
+- **Status line.** A plugin cannot set `statusLine`, so it is one line in
+  `~/.claude/settings.json`, and it follows plugin updates on its own:
+
+  ```json
+  "statusLine": { "type": "command", "command": "f=$(ls -t \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/engineering-rules-marketplace/engineering-rules/*/hooks/statusline.sh 2>/dev/null | head -n 1); [ -n \"$f\" ] && exec bash \"$f\"; echo 'engineering-rules status line: plugin not installed'" }
+  ```
+
+  It shows the directory, git branch and dirty state, model, a context bar, session uptime,
+  and the last ledger position Claude printed, e.g. `(3 of 6, Phase 4)`.
+
+Desktop notifications use `osascript` on macOS and `notify-send` on Linux; both hooks and
+the status line need `jq`. Every exit of the notifier is 0, so a missing tool never fails a
+turn. The log is append-only and never trimmed; trim it yourself when it gets long. On macOS
+a turn that ends on a ledger re-print is announced twice, once by Claude's notification tool
+(the rule in `1.4`) and once by the Stop hook; the hook is the one that cannot be forgotten
+under load, so silence the tool's desktop alerts in Claude Code's settings if you want one
+alert, or comment out the `notify_desktop` call in `on_stop` for the other.
+
 ## Section 17 is droppable
 
 The last group is twelve complete, ready-to-drop `DESIGN.md` specs, about a quarter of the
@@ -141,6 +182,14 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.1.0**: the file and folder law (`2.2`) now puts every file of a feature in a role
+  folder (`services/`, `types/`, `tests/` and the rest) and refuses the flat feature
+  folder; `2.1`, the always-on law in `SKILL.md` and the review-triage example in `16.2`
+  were aligned to it. `5.5` (delegation) is new: what stays in this session and what goes
+  to a helper, with the always-on Helpers rule, `0.1`, `6.1`, `9.1` and `12.1` pointing
+  at it. Hooks ship with the plugin (`hooks/`): a progress log and a desktop notification
+  on every turn end and whenever Claude is waiting, a status line with the ledger position,
+  and the notify-at-every-tick rule in `1.4` and `5.1`.
 - **2.0.1**: the skill description trimmed under the 1024-character cap the Agent Skills
   spec sets for a `description`; install notes rewritten around the copy-on-install
   behaviour.

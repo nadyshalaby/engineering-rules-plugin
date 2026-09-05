@@ -25,7 +25,9 @@ description: >-
 
 The law is here, in full. Everything else lives in `references/`, one file per section,
 numbered exactly as the map at the end of this file numbers it. Read a reference at the
-moment its phase calls for it, from disk, never from memory. Section `0.1` carries the full
+moment its phase calls for it, from disk, never from memory: yourself when it is short, or
+through a fork that reads it in its own context and returns the lines that apply (5.5).
+What the fork returns binds exactly as the file does. Section `0.1` carries the full
 per-section table.
 
 | Tag | What it is |
@@ -54,6 +56,7 @@ per-section table.
 | **Touched scope** | `git diff --name-only <base>..HEAD -- . ':(exclude)docs/work/*'`, where `<base>` is the commit recorded at task start. |
 | **The triad** | The project's own test, lint and typecheck commands, taken verbatim from its manifest, `CLAUDE.md` or README. Never guessed. |
 | **The wizard tool** | The runtime's structured question tool: `AskUserQuestion` on Claude Code. |
+| **The notification tool** | The runtime's push-notification tool: `PushNotification` on Claude Code. One line to the desktop and, with Remote Control, the phone. |
 | **The ledger substrate** | The runtime's todo tracker when it exposes one; otherwise the printed block. Named once at the first print. |
 | **Exit artifact** | The concrete thing that must exist before a ledger item may tick. One per phase, listed in section 5.1. |
 | **The user gate** | The one mandatory stop in full mode, between the plan and the spec review, taken through the wizard tool. Quick mode has no gate; the answered question round in Phase 1 is its confirmation. |
@@ -82,7 +85,7 @@ per-section table.
 - **0 lint or type suppressions**: no `biome-ignore`, `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck` or their equivalents in any language. Sole exception: `@ts-expect-error` in a test file over deliberately invalid input, with a comment saying WHY. These tokens stay literal in this file because they are the strings the scouts grep for.
 - **0 non-null `!` assertions.**
 - **0 empty catches.** `catch (e) {}` and every equivalent is banned unconditionally.
-- **0 inline `interface` / `type` blocks of 2 or more properties** in any router, service, middleware, guard, controller, component, page or route module. Extract to a sibling `*.types` file.
+- **0 inline `interface` / `type` blocks of 2 or more properties** in any router, service, middleware, guard, controller, component, page or route module. Extract to a `*.types` file in the feature's `types/` folder.
 - **0 bare `Error` throws** in domain code. Throw a domain-specific exception subclass.
 
 **File separation, one thing per file.**
@@ -146,6 +149,7 @@ Twelve guardrails, distilled from the canonical performance catalog (section 3.1
 - **No phase is ever silently skipped.** A phase that genuinely does not apply is ticked complete with a one-line reason. Never deleted, never dropped in silence, in any mode.
 - **Every question goes through the wizard tool.** Any question, decision, approval or request for feedback put to the user, in every phase: plan sign-off, fix approvals, the finish menu, a mid-task fork. A plain numbered list in chat is forbidden. The recommended option is first and carries ` (Recommended)`.
 - **A tick with no reflection is an untrusted tick, and a deferred write is no tick at all.** One line saying what changed and whether it passed, then flip the item, then open the next, in one saved edit. There is no later. In full mode the work-doc edit comes before the chat re-print; in Phase 3 the checkbox and the Daily Updates entry land together as each task closes; at the close, the one edit that writes `status: done` is followed immediately by the archive move.
+- **Every tick also goes out through the notification tool.** At every phase boundary and every stage end, right after the re-print, send the ledger heading and the one-line reflection as one line under 200 characters. The user may be away from the terminal, and this is the one step that reaches them there. The runtime drops the line when they are watching, which is never an error; a runtime with no notification tool says so once and carries on.
 
 ### 1.5 [rule] Claim integrity, evidence before claims
 
@@ -199,9 +203,10 @@ _Adapted from Andrej Karpathy's observations on the recurring failure modes of l
 1. Confirm the exit artifact for the closing phase exists (the table in 5.1). If it does not, the phase is not over.
 2. One-line reflection: what changed, did it pass, what is next.
 3. Tick the closing item and open the next, in one edit; in full mode edit the work-doc first, then re-print.
-4. Read the next phase's reference file from disk.
-5. Restate the anchor's North-Star Goal and its top Non-Goal in one line, so drift is visible.
-6. **Re-anchor after context loss.** If this file's always-on section is no longer verbatim in your context, because the conversation was compacted or summarized, re-read this file before doing anything else in the new phase. A summary of the law is not the law.
+4. Send the heading line and the reflection through the notification tool (1.4), one line under 200 characters.
+5. Read the next phase's reference file from disk.
+6. Restate the anchor's North-Star Goal and its top Non-Goal in one line, so drift is visible.
+7. **Re-anchor after context loss.** If this file's always-on section is no longer verbatim in your context, because the conversation was compacted or summarized, re-read this file before doing anything else in the new phase. A summary of the law is not the law.
 
 **Loop-back, when a later phase sends you back.** A red in Phase 4, a Critical or Important finding in Phase 5, a red re-verify in Phase 6, or a task you cannot finish in Phase 3, sends you back to Phase 3 (or 3b when stuck). Re-open the earlier item as `- [>]` with `reopened: <reason>` appended, leave every later item open, and run forward again through every phase in between. Never patch and skip ahead. Every re-run of a phase produces fresh evidence; nothing from the earlier pass carries over as proof.
 
@@ -209,7 +214,7 @@ _Adapted from Andrej Karpathy's observations on the recurring failure modes of l
 
 **Git safety, in every phase.** Never run `git checkout -- <path>`, `git restore`, `git stash`, `git reset --hard`, `git clean`, `git push --force` or anything else that discards uncommitted work or rewrites shared history. Copy a file if you need a backup. Never `git add -A`, `git add .` or `git commit -a`; stage explicit paths. Never `--no-verify` unless the user explicitly said so. Never `--amend` after a hook failed. Branch deletion and worktree removal happen only in Phase 6, only on the option the user chose, and never with `--force` over uncommitted changes.
 
-**Helpers.** If you split the work across sub-agents or tools, every rule here binds each of them, you brief them with the repo brief (6.13) plus standing permission to refute it, and you remain the owner of the ledger, the scouts, the evidence and every claim.
+**Helpers, and what stays in this session.** This session is the spine: it owns the anchor, the ledger, every question to the user, the verification it ticks on, and every claim it makes. Send the heavy reading out and keep the thinking in. A fork reads a scout, a bank or a catalog and returns only the rows that apply, so the file never lands in this context; a fresh agent runs the five review checks in Phase 5, because the context that wrote a diff cannot see its own blind spots; the cheapest model runs greps, counts and coverage lines and pastes raw output; a builder takes one implementation stage whose file allowlist is disjoint from every other running stage. Never delegate a whole phase, a question to the user, a tick, a scout disposition, a fix, the ship gate, the self-audit or the update log. Every helper carries every rule here, every non-fork helper is briefed with the repo brief (6.13) plus standing permission to refute it, and a helper's output is a report you re-run before you tick, never proof (1.5). The four shapes, the return contract and the runtime mapping are in 5.5. Where the runtime has no agent tool, every shape collapses into this session and the reading happens here.
 
 **Before the update log, the law self-audit.** Print this block filled in, in chat and in the work-doc when there is one. Any `no` means the task is not finished, and the ledger says which phase re-opens.
 
@@ -265,7 +270,7 @@ Every section is a file in `references/`. The number is the section id; "section
 | **2** | Doctrine: code quality (2.1), file and folder law (2.2) | Before writing code, and before creating any file or folder. |
 | **3** | Catalogs: performance (3.1), security (3.2), test scenarios (3.3) | Look up an ID or a fix direction; never read end to end. |
 | **4** | Routes: how one is picked (4.1), quick mode (4.2), full mode (4.3) | At task start. |
-| **5** | Working references: the ledger (5.1), the goal anchor (5.2), voice (5.3), full mindset (5.4) | 5.1 and 5.2 at task start; 5.3 governs every chat line; 5.4 at Phase 1. |
+| **5** | Working references: the ledger (5.1), the goal anchor (5.2), voice (5.3), full mindset (5.4), delegation (5.5) | 5.1 and 5.2 at task start; 5.3 governs every chat line; 5.4 at Phase 1; 5.5 before the first helper is sent, and again after a compaction. |
 | **6** | Phase 1, Clarify: the phase (6.1), the question contract (6.2), the banks (6.3–6.11), domain mechanisms (6.12), the repo brief (6.13), investigating code (6.14) | When a task opens. |
 | **7** | Phase 2, Plan and gate: the phase (7.1), the work-doc template (7.2), work-doc rules (7.3) | Full mode, when writing the plan. |
 | **8** | Phase 2.5, Spec review (8.1, 8.2) | Full mode, after the gate. |
