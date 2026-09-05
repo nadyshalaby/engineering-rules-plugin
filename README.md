@@ -79,6 +79,9 @@ engineering-rules-plugin/
 │           ├── 15-design/               visual law, spec contract, twelve directions
 │           ├── 16-other-routes/         shaping, triage, audit, walkthrough, skill authoring, update log
 │           └── 17-ready-made-specs/     twelve complete DESIGN.md files
+├── tests/
+│   ├── law-scout.test.sh                runs the law scout's block against planted bans
+│   └── no-control-bytes.test.sh         fails on any raw control byte in a tracked file
 └── README.md
 ```
 
@@ -91,6 +94,13 @@ in the text resolves by looking at the prefix. The full map, with a link per sec
 Every file here stays under the 500-line cap the law sets for code, `SKILL.md` included.
 Section 17's specs are the largest at about 470 lines. If a section ever needs more, it is
 split, not grown.
+
+Three checks run against the plugin itself. `bash tests/no-control-bytes.test.sh` fails on
+any raw control byte in a tracked file: a `\0`, `\b` or `\e` that lost its backslash on the
+way in reads fine and runs wrong, which is how 2.0.1 and 2.1.0 shipped a law scout that
+scanned nothing. `bash tests/law-scout.test.sh` runs the law scout's block straight out of
+`9.5` against a throwaway repo with planted bans and expects every hit.
+`bash hooks/tests/<name>.test.sh` covers the two hook scripts.
 
 ## Install
 
@@ -182,6 +192,13 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.1.1**: the law scout's shell block in `9.5` carried raw control bytes where `\n`, `\0`
+  and `\b` were typed, so in 2.0.1 and 2.1.0 every construct-ban row came back empty and the
+  readable count read zero without scanning; re-run any table built from it. The path list is
+  now NUL-separated at the source (`git diff -z`), a list built without `-z` is refused, the
+  readable count no longer runs a shell per path, `9.4` takes the same list, the three
+  word-boundary patterns are POSIX ERE, and `tests/no-control-bytes.test.sh` and
+  `tests/law-scout.test.sh` guard the plugin's files and the block itself.
 - **2.1.0**: the file and folder law (`2.2`) now puts every file of a feature in a role
   folder (`services/`, `types/`, `tests/` and the rest) and refuses the flat feature
   folder; `2.1`, the always-on law in `SKILL.md` and the review-triage example in `16.2`
