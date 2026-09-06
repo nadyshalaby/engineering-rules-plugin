@@ -1,17 +1,14 @@
 #!/bin/bash
 # Fixture tests for statusline.sh. Run: bash hooks/tests/statusline.test.sh
 # STATUSLINE_SH points the test at another copy of the script, for a watched failure.
-set -u
-here=${BASH_SOURCE[0]%/*}
-[ "$here" = "${BASH_SOURCE[0]}" ] && here=.
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../../tests/harness.sh
+. "$(dirname "${BASH_SOURCE[0]}")/../../tests/harness.sh"
+here=$(dirname "${BASH_SOURCE[0]}")
 SCRIPT="${STATUSLINE_SH:-$here/../statusline.sh}"
-WORK=$(mktemp -d "${TMPDIR:-/tmp}/statusline-test.XXXXXX")
-trap 'rm -rf "$WORK"' EXIT
 export TMPDIR="$WORK"
 T="$WORK/transcript.jsonl"
 PROJECT=${WORK##*/}
-failures=0
-count=0
 
 render() {
   printf '%s' "$1" | bash "$SCRIPT" | sed $'s/\e\\[[0-9;]*m//g'
@@ -19,23 +16,6 @@ render() {
 
 build_status_json() {
   printf '{"cwd":"%s","transcript_path":"%s","model":{"display_name":"Fable 5.1"},"context_window":{"used_percentage":%s}}' "$WORK" "$T" "$1"
-}
-
-assert_contains() {
-  count=$((count + 1))
-  case "$3" in
-    *"$2"*) printf 'ok   %s\n' "$1"; return ;;
-  esac
-  printf 'FAIL %s\n  wanted: %s\n  in:     %s\n' "$1" "$2" "$3"
-  failures=$((failures + 1))
-}
-
-assert_missing() {
-  count=$((count + 1))
-  case "$3" in
-    *"$2"*) printf 'FAIL %s\n  did not want: %s\n  in:           %s\n' "$1" "$2" "$3"; failures=$((failures + 1)); return ;;
-  esac
-  printf 'ok   %s\n' "$1"
 }
 
 test_bare_render() {
@@ -85,5 +65,4 @@ test_context_bar
 test_ledger_position
 test_replaced_transcript
 test_malformed_input
-printf '%s\n' "$((count - failures)) passed, $failures failed"
-[ "$failures" -eq 0 ]
+report

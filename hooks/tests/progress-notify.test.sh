@@ -3,12 +3,11 @@
 # osascript is shimmed on PATH so nothing pops and nothing runs; the shim records its argv so
 # the test can prove the title and the body travel as arguments and never as AppleScript.
 # PROGRESS_NOTIFY_SH points the test at another copy of the script, for a watched failure.
-set -u
-here=${BASH_SOURCE[0]%/*}
-[ "$here" = "${BASH_SOURCE[0]}" ] && here=.
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../../tests/harness.sh
+. "$(dirname "${BASH_SOURCE[0]}")/../../tests/harness.sh"
+here=$(dirname "${BASH_SOURCE[0]}")
 SCRIPT="${PROGRESS_NOTIFY_SH:-$here/../progress-notify.sh}"
-WORK=$(mktemp -d "${TMPDIR:-/tmp}/progress-notify-test.XXXXXX")
-trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/bin" "$WORK/config"
 cat > "$WORK/bin/osascript" <<'SHIM'
 #!/bin/bash
@@ -20,21 +19,9 @@ export PATH="$WORK/bin:$PATH" CLAUDE_CONFIG_DIR="$WORK/config" OSASCRIPT_ARGV="$
 LOG="$WORK/config/progress.log"
 ARGV="$OSASCRIPT_ARGV"
 SOURCE_LINE='display notification (item 1 of argv) with title (item 2 of argv)'
-failures=0
-count=0
 
 run_hook() {
   printf '%s' "$1" | bash "$SCRIPT"
-}
-
-assert_eq() {
-  count=$((count + 1))
-  if [ "$2" = "$3" ]; then
-    printf 'ok   %s\n' "$1"
-    return
-  fi
-  printf 'FAIL %s\n  expected: %s\n  actual:   %s\n' "$1" "$2" "$3"
-  failures=$((failures + 1))
 }
 
 read_log_line() {
@@ -96,6 +83,21 @@ test_notifier_failure() {
   assert_eq "a failing notifier is recorded on the log line" " proj | waiting | idle_prompt | waiting | notify-failed" "$(tail -n 1 "$LOG" | cut -d '|' -f 2-)"
 }
 
+test_stop_failure() {
+  run_hook '{"hook_event_name":"StopFailure","cwd":"/tmp/proj","error_type":"rate_limit","error_message":"Rate limit reached, retry in 30s"}'
+  assert_eq "a stop failure logs an error line" " proj | error | rate_limit | Rate limit reached, retry in 30s" "$(tail -n 1 "$LOG" | cut -d '|' -f 2-)"
+  assert_eq "and notifies with the error type in the body" "$(printf '%s\n' 'rate_limit: Rate limit reached, retry in 30s' 'Claude stopped on an error · proj')" "$(tail -n 2 "$ARGV")"
+}
+
+test_subagent_lines() {
+  run_hook '{"hook_event_name":"SubagentStart","cwd":"/tmp/proj","agent_type":"engineering-rules:law-reviewer","task_description":"Review base..HEAD with the five checks"}'
+  assert_eq "a helper send logs its shape and brief" " proj | helper | start | engineering-rules:law-reviewer | Review base..HEAD with the five checks" "$(tail -n 1 "$LOG" | cut -d '|' -f 2-)"
+  before=$(wc -l < "$ARGV" | tr -d ' ')
+  run_hook '{"hook_event_name":"SubagentStop","cwd":"/tmp/proj","agent_type":"engineering-rules:law-reviewer","last_assistant_message":"## Report\n\nTwo Important findings, both in hooks/x.sh."}'
+  assert_eq "a helper return logs its first prose line" " proj | helper | stop | engineering-rules:law-reviewer | Two Important findings, both in hooks/x.sh." "$(tail -n 1 "$LOG" | cut -d '|' -f 2-)"
+  assert_eq "helper lines raise no desktop notification" "$before" "$(wc -l < "$ARGV" | tr -d ' ')"
+}
+
 test_stop_with_ledger
 test_stop_without_ledger
 test_notification_event
@@ -104,5 +106,6 @@ test_quoted_reply
 test_bad_input
 test_jq_missing
 test_notifier_failure
-printf '%s\n' "$((count - failures)) passed, $failures failed"
-[ "$failures" -eq 0 ]
+test_stop_failure
+test_subagent_lines
+report

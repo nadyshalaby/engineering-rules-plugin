@@ -1,6 +1,6 @@
 #!/bin/bash
 # Shared by the tests beside it: strict mode, the repo root, a scratch dir removed on exit, the
-# pass and fail counters, the two assertions and the closing report line. Source it first:
+# pass and fail counters, the three assertions and the closing report line. Source it first:
 #   . "$(dirname "${BASH_SOURCE[0]}")/harness.sh"
 set -u
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[1]:-plugin-test}" .sh).XXXXXX")
@@ -18,6 +18,14 @@ assert_contains() {
     *"$2"*) printf 'ok   %s\n' "$1"; return ;;
   esac
   printf 'FAIL %s\n  wanted: %s\n  in:     %s\n' "$1" "$2" "$3"
+  failures=$((failures + 1))
+}
+
+# assert_eq <name> <expected> <actual>: the whole value, byte for byte.
+assert_eq() {
+  count=$((count + 1))
+  if [ "$2" = "$3" ]; then printf 'ok   %s\n' "$1"; return; fi
+  printf 'FAIL %s\n  expected: %s\n  actual:   %s\n' "$1" "$2" "$3"
   failures=$((failures + 1))
 }
 

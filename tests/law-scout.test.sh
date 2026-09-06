@@ -91,6 +91,7 @@ plant_allowed_and_secrets() {
   printf 'const password = "P@ssw0rd-Sup3r-Secret!"\n' > src/secret-special.ts
   printf 'export STRIPE_API_KEY=envsecretvalue2026xyz\n' > .envrc
   printf 'db_password=envsecretvalue2026xyz\n' > src/secret.properties
+  printf '# shellcheck source=lib.sh\n' > src/ok-shell.sh
   seq 1 500 > src/at-cap.ts
 }
 
@@ -113,6 +114,7 @@ plant_analogs() {
   printf 'let x = 1 // swiftlint:disable:next force_cast\n' > src/sup-swift.swift
   printf 'x = 1  # pragma: no cover\n' > src/sup-nocover.py
   printf '@file:Suppress("UNCHECKED_CAST")\n' > src/sup-kotlin.kt
+  printf '%s disable=SC2086\n' '# shellcheck' > src/sup-shell.sh  # two pieces: this line carries no token
   printf '_ = err\n' > src/catch-go.go
   printf 'x rescue nil\n' > src/catch-ruby.rb
   printf 'result.ok();\n' > src/catch-rust.rs
@@ -199,6 +201,8 @@ test_finds_every_language_analog() {
   assert_contains "swift swiftlint disable" "ban.suppression src/sup-swift.swift:1:" "$out"
   assert_contains "python pragma no cover" "ban.suppression src/sup-nocover.py:1:" "$out"
   assert_contains "kotlin file-level Suppress" "ban.suppression src/sup-kotlin.kt:1:" "$out"
+  assert_contains "shell lint suppression directive" "ban.suppression src/sup-shell.sh:1:" "$out"
+  assert_missing "a shellcheck source directive is not a suppression" "ok-shell.sh" "$out"
   assert_contains "go error discarded into _" "ban.empty-catch src/catch-go.go:1:" "$out"
   assert_contains "ruby inline rescue nil" "ban.empty-catch src/catch-ruby.rb:1:" "$out"
   assert_contains "rust .ok() dropping a Result" "ban.empty-catch src/catch-rust.rs:1:" "$out"
