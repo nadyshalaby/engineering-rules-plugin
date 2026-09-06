@@ -9,12 +9,12 @@ description: >-
   and folder organization law; performance, security, test-scenario and clean-code catalogs;
   an eight-phase workflow (clarify, plan,
   spec review, implement, debug, verify, review, finish) with a phase ledger that refuses to
-  advance; six question banks; five review checks; the ship gate; a frontend design law and
-  twelve ready-made design specs. Use it whenever you are about to write, change, refactor,
-  review, debug, verify, audit or plan ANY code, including one-line edits, and whenever the
-  user asks about engineering standards, code quality, naming, where a file should live, how
-  to structure a module, how to review a diff, what counts as evidence, or how to carry a task
-  from request to done. Load it before writing code, not after.
+  advance; six question banks; five review checks; the ship gate; a frontend design law, a
+  design scout and twelve ready-made specs. Use it whenever you are about to write, change,
+  refactor, review, debug, verify, audit or plan ANY code, including one-line edits, and
+  whenever the user asks about engineering standards, code quality, naming, where a file
+  should live, how to structure a module, how to review a diff, what counts as evidence, or
+  how to carry a task from request to done. Load it before writing code, not after.
 ---
 
 # Engineering rules and working method
@@ -266,7 +266,7 @@ _Adapted from Andrej Karpathy's observations on the recurring failure modes of l
 Law self-audit
 1. Every phase ticked with its exit artifact, none deleted, skips reasoned?   yes / no
 2. Every question to the user went through the wizard tool?                   yes / no
-3. Both scouts ran at every stage end and at Phase 5 start, every row dispositioned? yes / no
+3. Every scout ran at every stage end and at Phase 5 start (the design scout too on UI-bearing work), every row dispositioned? yes / no
 4. Evidence Ledger has a row per task and per acceptance bullet, all fresh?    yes / no
 5. The three ship-gate rows are present, each ✅ or a reasoned skip?           yes / no
 6. Phase 5 coverage ledger has a row per touched path, decision table empty?   yes / no
@@ -302,8 +302,8 @@ is written before it is needed rather than produced when it would be convenient.
 | Run point | Shape | What is sent | Why it is not optional |
 |---|---|---|---|
 | Phase 1, composing the question batch (6.1) | reader, a fork | 6.2, 6.4, 6.5, the matched bank, 6.12 | ~500 lines that otherwise do your thinking for the rest of the task |
-| Every stage end, and Phase 5 start, both scouts (9.4, 9.5) | reader, a fork | the two scout files and the paths in scope | ~600 lines, re-read at every single run point |
-| Phase 5, the five checks (12.3–12.7) | reviewer, a fresh agent, never a fork | the diff, the anchor, the repo brief, the five check files, both scout tables | the context that wrote a diff cannot see its own blind spots, because it still holds every reason the diff looked right |
+| Every stage end, and Phase 5 start, the scouts (9.4, 9.5, and 15.29 on UI-bearing work) | reader, a fork | the scout files and the paths in scope | ~1000 lines, re-read at every single run point |
+| Phase 5, the five checks (12.3–12.7) | reviewer, a fresh agent, never a fork | the diff, the anchor, the repo brief, the five check files, every scout table, the design spec and composition plan on UI-bearing work | the context that wrote a diff cannot see its own blind spots, because it still holds every reason the diff looked right |
 | Any count, grep, coverage reconcile or planted-instance proof (1.5) | mechanic, the cheapest model | the exact commands, verbatim | raw output is the evidence; producing it here spends the context that has to judge it |
 
 **The ledger refuses.** A phase whose mandatory send was neither made nor reasoned does not
@@ -374,6 +374,6 @@ Every section is a file in `references/`. The number is the section id; "section
 | **12** | Phase 5, Review: the phase (12.1), coverage (12.2), the five checks (12.3–12.7), challenge (12.8), merge and escalate (12.9) | When reviewing the diff. |
 | **13** | Phase 6, Finish: the phase (13.1), in detail (13.2) | When closing out. |
 | **14** | Anti-patterns, seven worked examples (14.1) | Phase 3, and whenever an approach feels grand. |
-| **15** | Design: the visual law (15.1), the spec package (15.2), the contract (15.3), the direction library (15.4), extract (15.5), picking a spec (15.6), twelve directions (15.7–15.18), authoring (15.19) | Any UI-bearing work, from Phase 1. |
+| **15** | Design: the visual law (15.1), the spec package (15.2), the contract (15.3), the direction library (15.4), extract (15.5), picking a spec (15.6), twelve directions (15.7–15.18), authoring (15.19), the read and the dials (15.20), the design-system map (15.21), page composition (15.22), copy and imagery (15.23), the AI-tell catalog (15.24), motion (15.25), implementation guardrails (15.26), the pattern vocabulary (15.27), the redesign protocol (15.28), the design scout (15.29), the pre-flight (15.30), image-first and brand work (15.31) | Any UI-bearing work, from Phase 1. |
 | **16** | Other routes: shaping (16.1), triage (16.2), audit (16.3–16.8), walkthrough (16.9–16.11), skill authoring (16.12), update log (16.13) | When the route table sends you there. |
 | **17** | Twelve ready-made design specs (17.1–17.12) | Starting a design spec fresh. A droppable appendix; nothing depends on it. |

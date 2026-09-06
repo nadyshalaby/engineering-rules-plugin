@@ -11,7 +11,7 @@
       "name": "engineering-rules",
       "source": "./",
       "description": "The engineering law and working method as one skill. The always-on law, the run discipline and the delegation authorization load with the skill; the remaining sections are read only when the phase calls for them. Invoke it by name to pick a route from the chat box.",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "category": "workflow",
       "keywords": [
         "engineering-law",

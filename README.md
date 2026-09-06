@@ -18,7 +18,7 @@ self-audit before any task is called done.
 |---|---|---|
 | 1 | `name` + `description` | Always in context, about 100 words |
 | 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.7`), the route table, the group map | Loads when the skill triggers, about 300 lines |
-| 3 | `references/**`: all 108 sections, one file each | Only when a phase names one |
+| 3 | `references/**`: all 120 sections, one file each | Only when a phase names one |
 
 The seven always-on sections live in `SKILL.md` because they bind from the moment the skill
 loads, and a reference you have to go fetch is a reference you might not fetch. The files
@@ -32,7 +32,7 @@ wins.
 Every substantive ask goes through the same phases:
 1 Clarify, 2 Plan and gate, 2.5 Spec review, 3 Implement (3b Debug when stuck), 4 Verify,
 5 Review, 6 Finish. Quick mode, the default, drops the written plan, the spec review and the
-landing menu, and nothing else: every check, both scouts, all three verify layers, the five
+landing menu, and nothing else: every check, every scout, all three verify layers, the five
 review checks and the ship gate still run. Full mode runs when the user names it. The other
 routes (shaping, walking one execution path, auditing a whole codebase, review triage,
 authoring a skill, authoring a design spec, printing the update log) are picked by the rules
@@ -76,12 +76,13 @@ engineering-rules-plugin/
 │           ├── 12-phase-5-review/       five review checks, the challenge, the decision table
 │           ├── 13-phase-6-finish/       land, cleanup sweep, archive, self-audit, update log
 │           ├── 14-anti-patterns/        seven worked examples
-│           ├── 15-design/               visual law, spec contract, twelve directions
+│           ├── 15-design/               visual law, spec contract, twelve directions, composition, tells, scout
 │           ├── 16-other-routes/         shaping, triage, audit, walkthrough, skill authoring, update log
 │           └── 17-ready-made-specs/     twelve complete DESIGN.md files
 ├── tests/
-│   ├── catalog-ids.test.sh              every catalog id and every coarse rule id cited anywhere has a row
-│   ├── harness.sh                       shared by the three tests: repo root, scratch dir, assertions
+│   ├── catalog-ids.test.sh              every catalog id, tell id and coarse rule id cited anywhere has a row
+│   ├── design-scout.test.sh             runs the design scout's block against planted AI tells and their allowed forms
+│   ├── harness.sh                       shared by the four tests: repo root, scratch dir, assertions
 │   ├── law-scout.test.sh                runs the law scout's block against planted bans and their equivalents
 │   └── no-control-bytes.test.sh         fails on any raw control byte in a tracked file
 └── README.md
@@ -199,6 +200,21 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.4.0**: group 15 grows from nineteen to thirty-one sections, folding in the design read
+  and the three dials (`15.20`), the design-system map (`15.21`), the page composition law
+  (`15.22`), the copy and imagery law (`15.23`), the AI-tell catalog with stable
+  `tell.<area>.<slug>` ids (`15.24`), motion discipline and recipes (`15.25`), implementation
+  guardrails (`15.26`), the pattern vocabulary (`15.27`), the redesign protocol (`15.28`), a
+  third scout keyed to the tell ids (`15.29`), the design pre-flight (`15.30`) and image-first
+  and brand work (`15.31`). `15.1` carries the expanded bans and musts, the twelve profiles
+  carry a default dial triple and three new anti-tells, `15.3` gains optional `dials` and
+  `system` blocks and a thirteenth validation item, `12.5` re-judges the scout's rows and
+  re-runs the pre-flight, and `SKILL.md`, `0.1`, `2.2`, `4.2`, `4.3`, `5.1`, `5.4`, `5.5`,
+  `6.1`, `6.6`, `6.9`, `6.13`, `7.1`, `7.2`, `9.1`, `9.3`, `12.1`, `13.2` and `16.13` are
+  aligned to it: three scouts where they said two, the read and the dials in the clarify
+  step and the work-doc, the block library in the folder law, placeholder image slots in
+  the cleanup sweep and the update log. `tests/design-scout.test.sh` is new and
+  `tests/catalog-ids.test.sh` checks the `tell` family.
 - **2.2.0**: the clean-code catalog (`3.4`) is new, 99 judged rows with stable
   `style.<domain>.<slug>` ids across naming, functions, comments, structure, objects, error
   handling, boundaries, classes, async and test hygiene, plus the community rules this law

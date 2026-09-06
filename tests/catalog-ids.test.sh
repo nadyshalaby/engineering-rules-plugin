@@ -1,6 +1,7 @@
 #!/bin/bash
-# Guard: every id cited anywhere in the skill resolves to a row. The perf.*, sec.*, test.* and
-# style.* catalog schemes are the spine every finding, scout row and review prompt keys on, and
+# Guard: every id cited anywhere in the skill resolves to a row. The perf.*, sec.*, test.*,
+# style.* and tell.* catalog schemes are the spine every finding, scout row and review prompt
+# keys on (the tell.* rows live in the design group's 15.24 rather than in group 3), and
 # the coarse rule ids (ban.*, cap.*, clean.* and the rest) are the audit rule catalog's (16.4);
 # a renamed or mistyped id fails silently everywhere it is cited.
 # Run: bash tests/catalog-ids.test.sh
@@ -11,17 +12,18 @@ ROOT=$(repo_root) || exit 1
 SKILL="$ROOT/skills/engineering-rules"
 CATALOGS="$SKILL/references/03-catalogs"
 RULES="$SKILL/references/16-other-routes/16.4-the-audit-rule-catalog.md"
+TELLS="$SKILL/references/15-design/15.24-the-ai-tell-catalog.md"
 
 # cited_ids <dir>: every distinct <family>.<domain>.<slug> written in a markdown file under
 # the directory, the catalogs themselves included, so a row citing a sibling is checked too.
 cited_ids() {
-  grep -rhoE '(^|[^[:alnum:]_.-])(perf|sec|test|style)\.[a-z0-9-]+\.[a-z0-9-]+' --include='*.md' "$1" \
+  grep -rhoE '(^|[^[:alnum:]_.-])(perf|sec|test|style|tell)\.[a-z0-9-]+\.[a-z0-9-]+' --include='*.md' "$1" \
     | sed -E 's/^[^a-z]*//' | sort -u
 }
 
-# catalog_rows: every id that heads a row in one of the four catalogs.
+# catalog_rows: every id that heads a row in one of the four catalogs or the tell catalog.
 catalog_rows() {
-  grep -hoE '^\| (perf|sec|test|style)\.[a-z0-9-]+\.[a-z0-9-]+ \|' "$CATALOGS"/3.*.md \
+  grep -hoE '^\| (perf|sec|test|style|tell)\.[a-z0-9-]+\.[a-z0-9-]+ \|' "$CATALOGS"/3.*.md "$TELLS" \
     | sed -E 's/^\| //; s/ \|$//' | sort -u
 }
 
@@ -72,6 +74,18 @@ test_a_planted_dangling_id_is_named() {
   failures=$((failures + 1))
 }
 
+test_a_planted_dangling_tell_id_is_named() {
+  count=$((count + 1))
+  mkdir -p "$WORK/planted-tell"
+  printf 'Cite tell.hero.no-such-row and tell.punct.em-dash here.\n' > "$WORK/planted-tell/doc.md"
+  found=$(dangling_ids "$WORK/planted-tell")
+  if [ "$found" = "tell.hero.no-such-row" ]; then
+    printf 'ok   a planted dangling tell id is named, and a real one is not\n'; return
+  fi
+  printf 'FAIL planted dangling tell id: wanted tell.hero.no-such-row alone, got: %s\n' "$found"
+  failures=$((failures + 1))
+}
+
 test_every_cited_rule_id_has_a_row() {
   count=$((count + 1))
   cited=$(cited_rule_ids "$SKILL" | grep -c .)
@@ -97,6 +111,7 @@ test_a_planted_dangling_rule_id_is_named() {
 
 test_every_cited_id_has_a_row
 test_a_planted_dangling_id_is_named
+test_a_planted_dangling_tell_id_is_named
 test_every_cited_rule_id_has_a_row
 test_a_planted_dangling_rule_id_is_named
 report
