@@ -1,6 +1,6 @@
 {
   "name": "engineering-rules",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "The complete engineering law and working method as one progressive-disclosure skill: hard caps and zero-tolerance bans, the file and folder organization law, performance/security/test-scenario/clean-code catalogs, an eight-phase workflow driven by a phase ledger that refuses to advance without its exit artifact, a run discipline (task start, phase boundaries, loop-backs, waiver limits, git safety, a law self-audit), a standing agent-tool authorization with four mandatory sends and a ledger that refuses to tick over a skipped one, six question banks, five review checks, the ship gate, a frontend design law with an AI-tell catalog, a design scout and a pre-flight, and twelve ready-made design specs. 120 sections, loaded only when the phase calls for them. Four hooks enforce the law at the tool boundary: a git guard, an edit guard, a file cap and a re-anchor after compaction; three shipped agents carry the reviewer, mechanic and builder shapes.",
   "author": {
     "name": "Nady Shalaby",

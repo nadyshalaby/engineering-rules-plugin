@@ -84,6 +84,22 @@ test_test_files_keep_the_rows_that_bind_them() {
   expect_write allow 'a secret in an ignored .env under tests' "$P/tests/.env" "STRIPE_KEY=$KEY"
 }
 
+# A focused test in code under a directory named like a test file is not a test-file row: the
+# guard classifies by the file name, and so does the scout's block. The token is in two pieces.
+test_a_lookalike_directory_is_not_a_test_directory() {
+  only=only
+  expect_write allow 'a focused call in code under weird.test.dir/' "$P/weird.test.dir/src/plain.ts" "describe.$only('x', () => {})"
+  expect_write deny  'the same call in a real test file under it'  "$P/weird.test.dir/tests/real.test.ts" "describe.$only('x', () => {})"
+}
+
+# The scout's test-file globs and path-kind's are two copies of one definition; this pins them.
+test_test_globs_match_the_scout() {
+  law="$(cd "$here/../.." && pwd)/skills/engineering-rules/references/09-phase-3-implement/9.5-the-law-scout.md"
+  scout=$(sed -n "s/^in_tests()  { in_paths \(.*\) | xargs.*/\1/p" "$law" | tr -d "'" | tr ' ' '\n' | sort)
+  kind=$(sed -n 's/^    \(.*\)) printf test\(; return\)\{0,1\} ;;$/\1/p' "$here/../path-kind.sh" | tr '|' '\n' | sort)
+  assert_eq "path-kind's test globs are the scout's" "$scout" "$kind"
+}
+
 # The guard's domain globs are a copy of the scout's in_domain list; this pins them together.
 test_domain_globs_match_the_scout() {
   law="$(cd "$here/../.." && pwd)/skills/engineering-rules/references/09-phase-3-implement/9.5-the-law-scout.md"
@@ -147,6 +163,8 @@ test_new_tokens_are_refused_and_old_ones_pass
 test_every_hook_rule_fires_once
 test_the_laws_own_exemptions_hold
 test_test_files_keep_the_rows_that_bind_them
+test_a_lookalike_directory_is_not_a_test_directory
+test_test_globs_match_the_scout
 test_domain_globs_match_the_scout
 test_a_climbing_path_stays_inside_the_scratch_dir
 test_a_broken_block_is_logged_not_trusted

@@ -345,6 +345,15 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.5.1**: the law scout's path helper in `9.5` matches a glob without a slash against the
+  file name alone, and the one slash glob that named a file shape (`*/test_*`) is gone, so a
+  directory named like a test file (`pkg.test.util/`, `src/test_utils/`) no longer makes
+  every file under it a test file, which had applied the test-only rows to real code and
+  invited the test-file waivers on it; the same helper serves the domain, scoped and
+  non-null rows, which now read a file name where they always meant one.
+  `tests/law-scout.test.sh` plants both look-alike directories, and the edit guard's test
+  pins its test globs to the scout's. Re-run any scout table built over a tree with such a
+  directory.
 - **2.5.0**: the law meets Claude Code's runtime. Four new hooks: a git guard on every
   `Bash` call that refuses the commands `1.7` bans and prompts on the waivable ones; an edit
   guard on the four edit tools that runs `9.5`'s block over the edit and refuses an added

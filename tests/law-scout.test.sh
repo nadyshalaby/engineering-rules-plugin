@@ -128,13 +128,24 @@ plant_analogs() {
   printf 'binding.pry\n' > src/dbg-ruby.rb
 }
 
+# A directory named like a test file (`x.test.y/`, `test_utils/`) is not a test directory:
+# code under it loses the test-only rows, while a real test file under it is still a test
+# file. The tokens are written in two pieces because the write-time guard (9.5) refuses an
+# edit that adds a contiguous one to a test file.
+plant_lookalike_directory() {
+  mkdir -p weird.test.dir/src weird.test.dir/tests weird/test_utils
+  printf 'describe.%s("x", () => {})\n// @ts-%s\n' only ignore > weird.test.dir/src/plain.ts
+  printf 'it.%s("y", () => {})\n' only > weird.test.dir/tests/real.test.ts
+  printf '@pytest.mark.%s\ndef helper(): pass  # no%s\n' skip qa > weird/test_utils/markers.py
+}
+
 build_fixture() (
   git init -q "$WORK/repo" && cd "$WORK/repo" || return 1
   git -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m base
   mkdir src
-  plant_bans && plant_equivalents && plant_scoped && plant_tests_in_other_conventions \
+  plant_bans && plant_equivalents && plant_scoped && plant_tests_in_other_conventions && plant_lookalike_directory \
     && plant_allowed_and_secrets && plant_bangs && plant_analogs || return 1
-  git add -- src tests spec pkg test_user.py .env .envrc -dash.ts
+  git add -- src tests spec pkg weird.test.dir weird test_user.py .env .envrc -dash.ts
   git -c user.name=t -c user.email=t@example.com commit -q -m planted
 )
 
@@ -182,6 +193,14 @@ test_finds_every_equivalent() {
   assert_contains "skipped test with no ticket" "test.skipped tests/skip.test.ts:1:" "$out"
   assert_contains "an email in a skip reason is not an owner" "test.skipped tests/skip-email.test.ts:1:" "$out"
   assert_contains "a named but missing ban file is said out loud" "ban.custom skipped:" "$out"
+}
+
+test_a_directory_named_like_a_test_file_is_not_one() {
+  assert_missing "code under weird.test.dir/ is not a test file" "test.focused weird.test.dir/src/plain.ts" "$out"
+  assert_contains "and that file was in the scan" "ban.suppression weird.test.dir/src/plain.ts:2:" "$out"
+  assert_contains "a real test file under it is still one" "test.focused weird.test.dir/tests/real.test.ts:1:" "$out"
+  assert_missing "code under a test_ directory is not a test file" "test.skipped weird/test_utils/markers.py" "$out"
+  assert_contains "and that file was in the scan" "ban.suppression weird/test_utils/markers.py:2:" "$out"
 }
 
 test_finds_every_test_file_convention() {
@@ -267,6 +286,7 @@ PLANTED=$(git -C "$WORK/repo" ls-files | wc -l | tr -d ' ')
 out=$(run_block)
 test_finds_every_planted_ban
 test_finds_every_equivalent
+test_a_directory_named_like_a_test_file_is_not_one
 test_finds_every_test_file_convention
 test_finds_every_language_analog
 test_leaves_the_allowed_alone_and_redacts_secrets
