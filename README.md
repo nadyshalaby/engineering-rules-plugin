@@ -1,8 +1,9 @@
 # engineering-rules
 
 The engineering law and working method, packaged as one Claude Code plugin: a skill that
-carries the law, hooks that enforce the parts of it a hook can see, three agents that carry
-the helper shapes the law sends work to, and eval cases that state what the plugin promises.
+carries the law, hooks that enforce the parts of it a hook can see, the prompts that bind
+Claude Code's own agent types to the helper shapes the law sends work to, and eval cases
+that state what the plugin promises.
 
 It began as a single 1 MB `CLAUDE.md`, split one section per file behind progressive
 disclosure. Version 2.0.0 was a hardening pass over that split: one canonical copy of the
@@ -50,8 +51,8 @@ boundary, so a session that lost its context can pick the work up from the ledge
 Every question to the user goes through the `AskUserQuestion` tool. Every claim of "done",
 "passes" or "clean" has a proof row behind it. Work the law sends out of the session (a
 reader, the stage-end scouts, the fresh reviewer, a mechanic, a builder; `5.5`) goes through
-the `Agent` tool, and the reviewer, mechanic and builder shapes ship as agents under
-`agents/`.
+the `Agent` tool on the agent types Claude Code ships itself (`fork`, `Explore`,
+`general-purpose`); `5.5` carries the prompt each shape is sent, pasted whole on every send.
 
 ## The law at the tool boundary
 
@@ -102,8 +103,8 @@ anchor | compact | (3 of 6, Phase 4)
 stop | (3 of 6, Phase 4) | first line of the reply
 waiting | permission_prompt | what it is waiting for
 error | rate_limit | the message
-helper | start | engineering-rules:law-reviewer | the brief
-helper | stop | engineering-rules:law-reviewer | first line of the return
+helper | start | general-purpose | the brief
+helper | stop | general-purpose | first line of the return
 ```
 
 ## Progress while you are away
@@ -137,17 +138,19 @@ rule in `1.4`) and once by the Stop hook; the hook is the one that cannot be for
 load, so silence the tool's desktop alerts in Claude Code's settings if you want one alert,
 or comment out the `notify_desktop` call in `on_stop` for the other.
 
-## The agents
+## The helper shapes
 
-Three agents ship under `agents/`, one per helper shape the delegation rule (`5.5`) sends
-work to. The skill names them on the send and falls back to a fresh general-purpose agent
-with the same brief when the plugin is not installed.
+The plugin ships no agents. The four shapes the delegation rule (`5.5`) sends work to run on
+the agent types Claude Code ships itself, and `5.5` carries the prompt each shape is sent,
+pasted whole on every send: a built-in type holds none of the law, so the prompt is the only
+thing between it and drift.
 
-| Agent | Shape | Model | What it may do |
+| Shape | Agent type | Model | What it may do |
 |---|---|---|---|
-| `engineering-rules:law-reviewer` | the fresh reviewer of Phase 5 | inherits | Reads the five review checks (`12.3` to `12.7`) from the plugin, runs them over the diff, returns findings in the review's shape. Never edits, never asks, never spawns. |
-| `engineering-rules:law-mechanic` | the mechanic | `haiku` | Runs the command it was given and returns the raw output, nothing summarized. |
-| `engineering-rules:law-builder` | a builder | inherits | Loads the skill, builds one stage inside the file allowlist it was handed, never commits, never spawns. Isolation is chosen on the send, not in the agent. |
+| the reader | `fork` for the scouts, the question batch and a catalog lookup (it inherits the conversation and needs no prompt); `Explore` with the reader prompt for a wide read-only search | the session's | Returns only the rows that apply, each with `file:line`, and a coverage line. Never edits. |
+| the fresh reviewer of Phase 5 | `general-purpose` with the reviewer prompt, never a fork | inherits | Reads the five review checks (`12.3` to `12.7`) at the paths the brief names, runs them over the diff, returns findings in the review's shape. Never edits, never asks, never spawns. |
+| the mechanic | `general-purpose` with the mechanic prompt | `haiku` | Runs the command it was given and returns the raw output, nothing summarized. |
+| a builder | `general-purpose` with the builder prompt, or a fork for a single stage | inherits | Loads the skill, builds one stage inside the file allowlist it was handed, never commits, never spawns. Isolation is chosen on the send. |
 
 Every hook fires inside an agent too, so a builder is under the same guards as the session.
 
@@ -169,10 +172,6 @@ engineering-rules-plugin/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
-├── agents/
-│   ├── law-reviewer.md                  the fresh reviewer of Phase 5
-│   ├── law-mechanic.md                  runs a command, returns raw output
-│   └── law-builder.md                   builds one stage inside an allowlist
 ├── evals/
 │   ├── git-safety/                      prompt.md + graders/
 │   ├── ledger-opens/
@@ -296,12 +295,12 @@ the version changes. After editing anything:
 4. start a new session, or run `/reload-plugins` in the current one.
 
 Running `claude plugin update` without a version bump reports "already at the latest
-version" and copies nothing. Hooks and agents come from the installed copy, so a session
-started before the refresh runs the old ones.
+version" and copies nothing. Hooks come from the installed copy, so a session started
+before the refresh runs the old ones.
 
 **As a live skill** (the fastest editing loop for the law itself): symlink the skill into
 your personal skills folder, and every edit is picked up on the next `/reload-plugins` with
-no version bump. The hooks and agents do not come along; they need the plugin install.
+no version bump. The hooks do not come along; they need the plugin install.
 
 ```
 ln -s ~/engineering-rules-plugin/skills/engineering-rules ~/.claude/skills/engineering-rules
@@ -322,6 +321,15 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.7.0**: the shipped agents are gone. `agents/` (`law-reviewer`, `law-mechanic`,
+  `law-builder`) is removed, and the four helper shapes run on the agent types Claude Code
+  ships itself: `fork` for a reader that needs the conversation, `Explore` for a wide
+  read-only search, `general-purpose` for the reviewer, the mechanic (on `haiku`) and a
+  builder. `5.5` now carries each shape's prompt, the former agent bodies plus a reader
+  block, pasted whole on every fresh send, so a built-in type is bound exactly as the shipped
+  agent was; the session checks `git status --porcelain` after a reviewer or a mechanic
+  returns. The agent-tool definition, `12.1` and the manifests name the built-in types; the
+  notifier's fixture test logs a `general-purpose` helper.
 - **2.6.0**: the git guard is gone. The `PreToolUse` hook on `Bash` that refused the git
   commands `1.7` bans and prompted on the waivable ones is removed with its fixture test, and
   `1.7` no longer says a hook stands behind it; the git safety law itself is unchanged and

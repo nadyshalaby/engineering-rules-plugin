@@ -90,11 +90,11 @@ test_stop_failure() {
 }
 
 test_subagent_lines() {
-  run_hook '{"hook_event_name":"SubagentStart","cwd":"/tmp/proj","agent_type":"engineering-rules:law-reviewer","task_description":"Review base..HEAD with the five checks"}'
-  assert_eq "a helper send logs its shape and brief" " proj | helper | start | engineering-rules:law-reviewer | Review base..HEAD with the five checks" "$(tail -n 1 "$LOG" | cut -d '|' -f 2-)"
+  run_hook '{"hook_event_name":"SubagentStart","cwd":"/tmp/proj","agent_type":"general-purpose","task_description":"Review base..HEAD with the five checks"}'
+  assert_eq "a helper send logs its shape and brief" " proj | helper | start | general-purpose | Review base..HEAD with the five checks" "$(tail -n 1 "$LOG" | cut -d '|' -f 2-)"
   before=$(wc -l < "$ARGV" | tr -d ' ')
-  run_hook '{"hook_event_name":"SubagentStop","cwd":"/tmp/proj","agent_type":"engineering-rules:law-reviewer","last_assistant_message":"## Report\n\nTwo Important findings, both in hooks/x.sh."}'
-  assert_eq "a helper return logs its first prose line" " proj | helper | stop | engineering-rules:law-reviewer | Two Important findings, both in hooks/x.sh." "$(tail -n 1 "$LOG" | cut -d '|' -f 2-)"
+  run_hook '{"hook_event_name":"SubagentStop","cwd":"/tmp/proj","agent_type":"general-purpose","last_assistant_message":"## Report\n\nTwo Important findings, both in hooks/x.sh."}'
+  assert_eq "a helper return logs its first prose line" " proj | helper | stop | general-purpose | Two Important findings, both in hooks/x.sh." "$(tail -n 1 "$LOG" | cut -d '|' -f 2-)"
   assert_eq "helper lines raise no desktop notification" "$before" "$(wc -l < "$ARGV" | tr -d ' ')"
 }
 
