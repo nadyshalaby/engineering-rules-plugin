@@ -143,14 +143,14 @@ or comment out the `notify_desktop` call in `on_stop` for the other.
 The plugin ships no agents. The four shapes the delegation rule (`5.5`) sends work to run on
 the agent types Claude Code ships itself, and `5.5` carries the prompt each shape is sent,
 pasted whole on every send: a built-in type holds none of the law, so the prompt is the only
-thing between it and drift.
+thing between it and drift. Every shape runs on the session's model; no send names one.
 
-| Shape | Agent type | Model | What it may do |
-|---|---|---|---|
-| the reader | `fork` for the scouts, the question batch and a catalog lookup (it inherits the conversation and needs no prompt); `Explore` with the reader prompt for a wide read-only search | the session's | Returns only the rows that apply, each with `file:line`, and a coverage line. Never edits. |
-| the fresh reviewer of Phase 5 | `general-purpose` with the reviewer prompt, never a fork | inherits | Reads the five review checks (`12.3` to `12.7`) at the paths the brief names, runs them over the diff, returns findings in the review's shape. Never edits, never asks, never spawns. |
-| the mechanic | `general-purpose` with the mechanic prompt | `haiku` | Runs the command it was given and returns the raw output, nothing summarized. |
-| a builder | `general-purpose` with the builder prompt, or a fork for a single stage | inherits | Loads the skill, builds one stage inside the file allowlist it was handed, never commits, never spawns. Isolation is chosen on the send. |
+| Shape | Agent type | What it may do |
+|---|---|---|
+| the reader | `fork` for the scouts, the question batch and a catalog lookup (it inherits the conversation and needs no prompt); `Explore` with the reader prompt for a wide read-only search | Returns only the rows that apply, each with `file:line`, and a coverage line. Never edits. |
+| the fresh reviewer of Phase 5 | `general-purpose` with the reviewer prompt, never a fork | Reads the five review checks (`12.3` to `12.7`) at the paths the brief names, runs them over the diff, returns findings in the review's shape. Never edits, never asks, never spawns. |
+| the mechanic | `general-purpose` with the mechanic prompt | Runs the command it was given and returns the raw output, nothing summarized. |
+| a builder | `general-purpose` with the builder prompt, or a fork for a single stage | Loads the skill, builds one stage inside the file allowlist it was handed, never commits, never spawns. Isolation is chosen on the send. |
 
 Every hook fires inside an agent too, so a builder is under the same guards as the session.
 
@@ -321,6 +321,12 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.7.1**: every helper runs on the session's model. The mechanic's `haiku` pin is gone,
+  and with it "the cheapest model" and "no weaker than" from `1.8`, `5.5` and the README: no
+  send names a `model`, a fork runs on the session's model by construction and a fresh type
+  inherits it, so the reviewer, the mechanic, a builder and a reader are all the model the
+  user is talking to. A runtime default that would hand helpers a different model is
+  overridden by naming the session's model on the send.
 - **2.7.0**: the shipped agents are gone. `agents/` (`law-reviewer`, `law-mechanic`,
   `law-builder`) is removed, and the four helper shapes run on the agent types Claude Code
   ships itself: `fork` for a reader that needs the conversation, `Explore` for a wide
