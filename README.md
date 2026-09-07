@@ -49,7 +49,9 @@ The phase ledger (`5.1`) is the order-enforcer. Every phase is an item with an e
 a phase is ticked only when that artifact exists, and the ledger is re-printed at every
 boundary, so a session that lost its context can pick the work up from the ledger alone.
 Every question to the user goes through the `AskUserQuestion` tool. Every claim of "done",
-"passes" or "clean" has a proof row behind it. Work the law sends out of the session (a
+"passes" or "clean" has a proof row behind it. Every stage sweeps its own leftovers both
+ways before it commits, removes the dead code already in the files it touched in a commit of
+its own, and shows the search behind every new symbol (`1.1`, `9.1`). Work the law sends out of the session (a
 reader, the stage-end scouts, the fresh reviewer, a mechanic, a builder; `5.5`) goes through
 the `Agent` tool on the agent types Claude Code ships itself (`fork`, `Explore`,
 `general-purpose`); `5.5` carries the prompt each shape is sent, pasted whole on every send.
@@ -321,6 +323,17 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.8.0**: the law leaves nothing behind. `1.1` gains a "leave nothing behind" principle
+  and "DRY, with the search shown": every new symbol carries the pasted search that found no
+  existing equivalent. The leftover sweep moves from the finish to every stage end (`9.1`,
+  `9.3`), and dead code runs both directions: what the diff added with no caller, and what it
+  orphaned by removing the last caller, import or reference. Dead code that was already in a
+  touched file is removed by default in its own `chore(<scope>): remove dead code in touched
+  files` commit, with a zero-reference proof per symbol, the looks-dead-but-may-not-be
+  guardrails in `13.2` class 10, one `git revert` as the veto, and the commit named in the
+  update log (`16.13`); `1.6`, `2.1` and `3.4` carry the exception. `12.7` names leftovers and
+  the reuse search explicitly, `9.5` hands it a leftovers lens, the builder prompt in `5.5`
+  searches before it adds and sweeps before it returns, and the self-audit asks.
 - **2.7.1**: every helper runs on the session's model. The mechanic's `haiku` pin is gone,
   and with it "the cheapest model" and "no weaker than" from `1.8`, `5.5` and the README: no
   send names a `model`, a fork runs on the session's model by construction and a fresh type

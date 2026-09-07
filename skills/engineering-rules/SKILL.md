@@ -132,11 +132,12 @@ On Claude Code, this plugin's edit guard hook refuses, at the tool boundary, an 
 **Always-on principles.**
 
 - **Reusable, generic, shareable, the prime directive.** Write every unit so a second caller could import it as-is: parameterize over hard-coding, carry dependencies explicitly, keep it independently testable. Extract on the SECOND use, never speculatively.
-- **DRY.** Search before writing. The same 3+ lines twice → extract.
+- **DRY, with the search shown.** Before writing a function, type, constant, schema or component, search the repo for one that already does it, and reuse or extend it. Every new symbol a stage adds carries the search that found no equivalent, pasted (1.5); a new symbol whose equivalent existed is a finding (`style.reuse`, `style.dry`). The same 3+ lines twice → extract.
 - **Named types.** Any object shape with 2+ properties is a named `interface` or `type`.
 - **Single responsibility.** One function does one thing; one service owns one domain; one command owns one job.
 - **Explicit over clever.** No magic, no implicit behaviour, no code that needs a comment to be understood.
 - **Edge cases.** Handle null, undefined, empty, concurrent and partial-failure paths. Do not hope.
+- **Leave nothing behind.** A change deletes what it orphans: the callee whose last caller it removed, and the import, type, constant, schema, fixture, flag, config key, env var, translation, test and doc line that served only what it replaced. Git is the history. Every stage sweeps its own leftovers before it commits (9.1), and dead code already sitting in a file the stage touched is removed in its own cleanup commit, never silently left (13.2, class 10).
 - **Comments.** Default to none. Write one only when the WHY is non-obvious.
 
 **The clean-code floor, ten lines distilled from the clean-code catalog (section 3.4).** Judged, not grepped; the quality-and-plan check (12.7) cites the catalog row.
@@ -152,7 +153,7 @@ On Claude Code, this plugin's edit guard hook refuses, at the tool boundary, an 
 9. **Composition before inheritance.** No hierarchy deeper than two, none built to share code.
 10. **A closed set is a type, not a string.** Enum or union for statuses, kinds and ids; a domain value is never a bare primitive.
 
-**Refuse on sight.** "Add error handling later"; a `TODO` with no owner; a fallback for a hypothetical future requirement; a backwards-compat shim for code that is never deployed; a half-finished implementation; re-exporting types "for convenience"; a `// removed: <X>` comment for deleted code; a block of commented-out code.
+**Refuse on sight.** "Add error handling later"; a `TODO` with no owner; a fallback for a hypothetical future requirement; a backwards-compat shim for code that is never deployed; a half-finished implementation; re-exporting types "for convenience"; a `// removed: <X>` comment for deleted code; a block of commented-out code; a symbol your change left with zero references.
 
 ### 1.2 [rule] Expert mindset
 
@@ -225,7 +226,7 @@ The procedures behind these laws (choosing the tier, proving a zero, the tells o
 
 **Simplicity First.** Ship the minimum code that solves the stated problem. Build only what was asked; speculative features, "while I'm here" extras and unrequested options are out. No abstraction for single-use code. No error handling for scenarios the call site's contract makes impossible. No configuration knobs for hypothetical tuning. Prefer deletion over addition. *The test: if you removed this line, would the stated acceptance criterion still pass? If yes, the line is overhead.*
 
-**Surgical Changes.** Every changed line traces to the request. Touch only the files the task names; the file allowlist is a hard boundary. Do not refactor adjacent code "while you're in there"; open a separate task. Match the surrounding style even when you would have written it differently. Note pre-existing dead code, smells or bugs in the follow-ups; never silently rewrite them. Clean up orphans your own diff created, never someone else's. *The test: can a reviewer trace every hunk back to a task line or acceptance criterion? If not, the diff is too wide.*
+**Surgical Changes.** Every changed line traces to the request. Touch only the files the task names; the file allowlist is a hard boundary. Do not refactor adjacent code "while you're in there"; open a separate task. Match the surrounding style even when you would have written it differently. Note pre-existing smells or bugs in the follow-ups; never silently rewrite them. Clean up every orphan your own diff created, in the stage. Dead code already in a file you touched is the one hunk that traces to the law instead of the request: it is removed in its own cleanup commit with the zero-reference proof beside it (9.1, 13.2 class 10), because a dead symbol beside a live change is the next reader's trap. *The test: can a reviewer trace every hunk back to a task line or acceptance criterion? If not, the diff is too wide.*
 
 **Goal-Driven Execution.** Convert every imperative ask into a verifiable goal. Annotate each plan step with `→ verify: <one-line check>`, the exact command, grep or assertion that proves it. Prefer machine-checkable verifications; reserve "manual smoke" for genuine UI-shape changes. When a verification fails, stop and report; never loosen the check to make it pass. *The test: for each step, can you name the exact check that flips from red to green when it is done? If not, it is not yet a goal.*
 
@@ -278,6 +279,7 @@ Law self-audit
 10. Every claim in the update log has a proof row behind it?                   yes / no
 11. Helper availability recorded once at task start, every mandatory send made or reasoned? yes / no
 12. Every helper result re-run here before the tick that rests on it?          yes / no
+13. Every stage swept its leftovers both ways, dead code in touched files removed in its own commit, every new symbol's reuse search shown? yes / no
 ```
 
 **Never say.** "Should work", "looks good", "I believe this is fine", "tests should pass", "I'll add tests later", "probably", "you're absolutely right" before verifying, "done" before the ledger says so. Say what you ran and what it returned.
