@@ -24,7 +24,7 @@ the git safety law binds through the skill alone.
 |---|---|---|
 | 1 | `name` + `description` | Always in context, about 100 words |
 | 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.8`), the route table, the group map | Loads when the skill triggers, about 380 lines |
-| 3 | `references/**`: all 120 sections, one file each | Only when a phase names one |
+| 3 | `references/**`: all 121 sections, one file each | Only when a phase names one |
 | hooks | `hooks/hooks.json`: eight events, three guard and anchor scripts plus the notifier | Live from install, no prompt cost; up to half a second per edit of a code file |
 
 The eight always-on sections live in `SKILL.md` because they bind from the moment the skill
@@ -200,7 +200,7 @@ engineering-rules-plugin/
 │           ├── 03-catalogs/             performance, security, test scenarios, clean code
 │           ├── 04-routes/               quick mode, full mode, and how one is picked
 │           ├── 05-working-references/   phase ledger, goal anchor, voice, mindset, delegation
-│           ├── 06-phase-1-clarify/      question contract, six question banks, repo brief
+│           ├── 06-phase-1-clarify/      question contract, six banks, repo brief, coverage map
 │           ├── 07-phase-2-plan/         gate, worktree, work-doc template and rules
 │           ├── 08-phase-2-5-spec-review/
 │           ├── 09-phase-3-implement/    stage protocol, checklist, perf and law scouts
@@ -323,6 +323,22 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.9.0**: the clarify round is hardened into a senior product owner's. A new `6.15`,
+  the end-to-end coverage map: sixteen aspects (value, actors, entry points, inputs, the
+  happy path, states, data, failure paths, integrations, security, volume, observability,
+  rollout, surfaces, tests, operations) walked per deliverable, each `pinned:<source>`,
+  `asked:Q<n>` or `n/a:<reason>`, printed with the restatement, and Phase 1 does not close
+  on a hole. `6.4` gains Q0, the intent restatement (outcome, for whom, why now, done,
+  excluded, the interpretations weighed) confirmed by the user before any domain question,
+  plus an `Assuming:` list with a source per line. Every question carries `traces-to` (a
+  deliverable or requirement, or it is cut) and `cost-of-guessing` (the costliest fork is
+  asked first). The anchor's goal gains a value line and In-Scope is written as
+  deliverables (`5.2`). A `Suggestions:` block brings the options the user did not ask for,
+  each with its evidence tier (`6.2`). Always-on: a **Product owner** hat (`1.2`, `5.4`) and
+  **Memory is a hypothesis** (`1.5`): nothing about a library, API, tool, version or
+  platform is a fact until verified this session in the lockfile, the installed source, its
+  help or docs fetched now; the repo brief gets an Externals row (`6.13`), the investigation
+  method a go-and-read step (`6.14`), and the self-audit a fourteenth line.
 - **2.8.0**: the law leaves nothing behind. `1.1` gains a "leave nothing behind" principle
   and "DRY, with the search shown": every new symbol carries the pasted search that found no
   existing equivalent. The leftover sweep moves from the finish to every stage end (`9.1`,
