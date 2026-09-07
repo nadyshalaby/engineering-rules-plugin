@@ -53,7 +53,7 @@ Every question to the user goes through the `AskUserQuestion` tool. Every claim 
 ways before it commits, removes the dead code already in the files it touched in a commit of
 its own, and shows the search behind every new symbol (`1.1`, `9.1`). Work the law sends out of the session (a
 reader, the stage-end scouts, the fresh reviewer, a mechanic, a builder; `5.5`) goes through
-the `Agent` tool on the agent types Claude Code ships itself (`fork`, `Explore`,
+the `Agent` tool on the agent types Claude Code ships itself (`fork`, `Explore`, `Plan`,
 `general-purpose`); `5.5` carries the prompt each shape is sent, pasted whole on every send.
 
 ## The law at the tool boundary
@@ -151,6 +151,7 @@ thing between it and drift. Every shape runs on the session's model; no send nam
 |---|---|---|
 | the reader | `fork` for the scouts, the question batch and a catalog lookup (it inherits the conversation and needs no prompt); `Explore` with the reader prompt for a wide read-only search | Returns only the rows that apply, each with `file:line`, and a coverage line. Never edits. |
 | the fresh reviewer of Phase 5 | `general-purpose` with the reviewer prompt, never a fork | Reads the five review checks (`12.3` to `12.7`) at the paths the brief names, runs them over the diff, returns findings in the review's shape. Never edits, never asks, never spawns. |
+| the spec reviewer of Phase 2.5 (full mode) | `Plan` with the spec-reviewer prompt, read-only by construction, never a fork | Reads `8.2`, `5.2`, `2.1`, `2.2` and the plan, returns the execution order and findings by lens with severities. Never edits the work-doc, never asks, never spawns. |
 | the mechanic | `general-purpose` with the mechanic prompt | Runs the command it was given and returns the raw output, nothing summarized. |
 | a builder | `general-purpose` with the builder prompt, or a fork for a single stage | Loads the skill, builds one stage inside the file allowlist it was handed, never commits, never spawns. Isolation is chosen on the send. |
 
@@ -323,6 +324,15 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.10.0**: every built-in agent type is employed, and the builder reads what binds it.
+  The spec review of Phase 2.5 moves out of the context that wrote the plan into a fresh
+  `Plan` agent, read-only by construction, with its own prompt block in `5.5`; `8.1` sends
+  it, `8.2` returns the execution order for the session to write, and it is a mandatory
+  send in `1.8`. The builder prompt no longer says `2.2` and `9.2` "bind you" and leaves
+  it there: the Skill tool loads `SKILL.md` alone, so the builder now reads `2.2` before
+  creating or moving a file, `9.2` before writing a test and `14.1` when an approach feels
+  grand, at paths the brief carries, and a file placed or a test written without them is a
+  finding.
 - **2.9.0**: the clarify round is hardened into a senior product owner's. A new `6.15`,
   the end-to-end coverage map: sixteen aspects (value, actors, entry points, inputs, the
   happy path, states, data, failure paths, integrations, security, volume, observability,
