@@ -13,7 +13,9 @@ what nobody may, git safety, and a law self-audit before any task is called done
 2.5.0 moves the enforceable part of that law from the prompt into the runtime: a git command
 the law bans is refused before it runs, an edit that adds a banned token is refused before it
 lands, a file that crosses the line cap is reported the moment it is written, and a session
-that lost its context is re-anchored on the law and the ledger before its next step.
+that lost its context is re-anchored on the law and the ledger before its next step. Version
+2.6.0 takes the git guard back out: the shell is no longer judged at the tool boundary, and
+the git safety law binds through the skill alone.
 
 ## What loads when
 
@@ -22,7 +24,7 @@ that lost its context is re-anchored on the law and the ledger before its next s
 | 1 | `name` + `description` | Always in context, about 100 words |
 | 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.8`), the route table, the group map | Loads when the skill triggers, about 380 lines |
 | 3 | `references/**`: all 120 sections, one file each | Only when a phase names one |
-| hooks | `hooks/hooks.json`: eight events, four guard and anchor scripts plus the notifier | Live from install, no prompt cost; up to half a second per edit of a code file |
+| hooks | `hooks/hooks.json`: eight events, three guard and anchor scripts plus the notifier | Live from install, no prompt cost; up to half a second per edit of a code file |
 
 The eight always-on sections live in `SKILL.md` because they bind from the moment the skill
 loads, and a reference you have to go fetch is a reference you might not fetch. The files
@@ -60,31 +62,10 @@ fails a turn. Nothing here calls a model.
 
 | Event | Script | What it does |
 |---|---|---|
-| `PreToolUse` on `Bash` | `git-guard.sh` | Refuses the git commands the law bans (`1.7`) and turns the waivable ones into a permission prompt. |
 | `PreToolUse` on `Edit`, `Write`, `MultiEdit`, `NotebookEdit` | `edit-guard.sh` | Runs the law scout's own block (`9.5`) over the edit and refuses it when it adds a banned token. |
 | `PostToolUse` on the same four | `file-cap.sh` | Tells Claude when the file it just wrote is over 500 lines (`1.1`). |
 | `SessionStart` on `compact` or `resume` | `re-anchor.sh` | Puts the re-read instruction (`1.7`, step 7) and the last ledger position into the new context. |
 | `Stop`, `StopFailure`, `SubagentStart`, `SubagentStop`, `Notification` | `progress-notify.sh` | One log line per event, a desktop notification on a boundary, a wait or an error. |
-
-**What the git guard refuses.** `reset --hard`; `checkout --` and `checkout .`; `restore`;
-`stash` (except `list` and `show`); `clean` (except a dry run); `push --force`, `-f`,
-`--force-with-lease`, `--force-if-includes` and a `+refspec`; `add -A`, `--all`, `add .`, `./`,
-`:/` and a bare `*`; `commit -a` and its clusters such as `-am`. It sees the command behind
-`&&`, `;`, `|`, a subshell, a second line, a `\` line continuation, a glued redirect such as
-`git stash>/dev/null`, an absolute path to `git`, `git -C dir` and `git -c key=value`, and
-inside a quoted string that something runs, so `sh -c "git reset --hard"` and `eval "git
-stash"` are refused too. A banned command that only appears as text inside a quoted string (a
-commit message, a grep pattern, an `echo`) is asked about instead, so a false refusal never
-blocks and a real run never passes as text. Heredoc bodies are not commands and are left alone.
-A refusal quotes the law (`1.7`) and is logged; a secret in the command is redacted before
-either.
-
-**What the git guard asks about.** `--no-verify` (and `commit -n`) on `commit`, `push` and
-`merge`; `--amend`; `branch -d`, `-D` and `--delete`; `worktree remove`; `push --delete`, `-d`
-and `:ref`; and a banned command spelled only inside a quoted string. Each becomes a permission
-prompt, so the user says yes or no every time, which is what `1.7` requires. Under bypass
-permissions there is nobody to answer: in a headless boot the asked command did not run, the
-log line marks the mode, and every refusal still holds there.
 
 **What the edit guard refuses.** An edit to a code file that adds a hit under one of nine rule
 ids the scout can judge without a lexer: `ban.suppression`, `ban.empty-catch`, `ban.bare-error`
@@ -115,9 +96,6 @@ inline-type rows need a lexer and stay with the scout.
 line per event, `time | project | text`, append-only and never trimmed:
 
 ```
-guard | git | deny | reset --hard | git reset --hard HEAD~1
-guard | git | ask | no-verify | git commit --no-verify -m fix (bypass mode)
-guard | git | ask | stash (quoted) | git commit -m "note: never git stash"
 guard | edit | deny | ban.suppression | src/a.ts | line 3 of the new text
 cap | file-lines | src/big.ts | 512 lines
 anchor | compact | (3 of 6, Phase 4)
@@ -201,7 +179,6 @@ engineering-rules-plugin/
 │   └── route-picker/
 ├── hooks/
 │   ├── hooks.json                       eight events, live the moment the plugin is installed
-│   ├── git-guard.sh                     PreToolUse on Bash: refuses banned git, asks about waivable git
 │   ├── edit-guard.sh                    PreToolUse on the edit tools: 9.5's block over the edit
 │   ├── file-cap.sh                      PostToolUse on the edit tools: the 500-line cap
 │   ├── re-anchor.sh                     SessionStart after a compaction or a resume
@@ -239,7 +216,7 @@ engineering-rules-plugin/
 │   ├── design-scout.test.sh             runs the design scout's block against planted AI tells and their allowed forms
 │   ├── harness.sh                       shared by every test: repo root, scratch dir, the three assertions
 │   ├── hook-caps.test.sh                every shell file under 500 lines, every function under 40
-│   ├── hooks-wiring.test.sh             every wired script exists, every event script is wired, eight events
+│   ├── hooks-wiring.test.sh             every wired script exists, every event script is wired, eight events, no hook on Bash
 │   ├── law-scout.test.sh                runs the law scout's block against planted bans and their equivalents
 │   └── no-control-bytes.test.sh         fails on any raw control byte in a tracked file
 └── README.md
@@ -271,15 +248,15 @@ Six checks run against the plugin itself, all on `tests/harness.sh`:
   in `16.4`, and proves it can fail by planting one of each.
 - `bash tests/hooks-wiring.test.sh` fails when `hooks.json` names a script that is not there,
   when a script that reads an event is not wired, when a command does not go through
-  `CLAUDE_PLUGIN_ROOT`, or when one of the eight events is missing.
+  `CLAUDE_PLUGIN_ROOT`, when one of the eight events is missing, or when a hook reaches the
+  `Bash` tool.
 - `bash tests/hook-caps.test.sh` is the size cap above.
 
-`bash hooks/tests/<name>.test.sh` covers each hook script with fixtures: the git guard's
-denies, asks, evasions, allowed commands, reasons and log lines; the edit guard's nine rules,
-the law's exemptions, the test-file rows, the grew-versus-kept decision and the missing-law
-path; the file cap; the re-anchor on compact and resume; the notifier's five events; the
-status line. Every one of them can be pointed at a mutated copy of its script through an
-environment variable (`GIT_GUARD_SH`, `EDIT_GUARD_SH`, `FILE_CAP_SH`, `RE_ANCHOR_SH`,
+`bash hooks/tests/<name>.test.sh` covers each hook script with fixtures: the edit guard's
+nine rules, the law's exemptions, the test-file rows, the grew-versus-kept decision and the
+missing-law path; the file cap; the re-anchor on compact and resume; the notifier's five
+events; the status line. Every one of them can be pointed at a mutated copy of its script
+through an environment variable (`EDIT_GUARD_SH`, `FILE_CAP_SH`, `RE_ANCHOR_SH`,
 `PROGRESS_NOTIFY_SH`, `STATUSLINE_SH`; `HOOKS_JSON` and `CAP_DIR` for the two repo checks),
 so a run that watches the failure is one line. `shellcheck -x -P SCRIPTDIR -S style
 hooks/*.sh hooks/tests/*.sh tests/*.sh` is clean, and `claude plugin validate --strict .`
@@ -345,6 +322,12 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.6.0**: the git guard is gone. The `PreToolUse` hook on `Bash` that refused the git
+  commands `1.7` bans and prompted on the waivable ones is removed with its fixture test, and
+  `1.7` no longer says a hook stands behind it; the git safety law itself is unchanged and
+  still binds every session through the skill. `tests/hooks-wiring.test.sh` now fails when a
+  hook reaches the `Bash` tool. The `git-safety` eval stays, since its graders accept an
+  explicit refusal with no hook behind it.
 - **2.5.1**: the law scout's path helper in `9.5` matches a glob without a slash against the
   file name alone, and the one slash glob that named a file shape (`*/test_*`) is gone, so a
   directory named like a test file (`pkg.test.util/`, `src/test_utils/`) no longer makes

@@ -1,8 +1,9 @@
 #!/bin/bash
 # Guard: every hook hooks.json runs is a script that exists beside it, every command reaches
-# it through CLAUDE_PLUGIN_ROOT, and every hook script that reads Claude Code's event input
+# it through CLAUDE_PLUGIN_ROOT, every hook script that reads Claude Code's event input
 # is wired to an event (the status line is wired from settings.json, by design, so it does
-# not read events). Run: bash tests/hooks-wiring.test.sh
+# not read events), and no hook reaches the Bash tool: 2.6.0 took the git guard out, so the
+# shell is not judged at the tool boundary. Run: bash tests/hooks-wiring.test.sh
 # HOOKS_JSON points the test at another manifest, for a watched failure.
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=harness.sh
@@ -18,6 +19,12 @@ wired_scripts() { wired_commands "$1" | sed -E 's#.*/hooks/([^"]+)".*#\1#' | sor
 
 # event_scripts: the hook scripts that read an event on stdin, sorted.
 event_scripts() { grep -l 'read_hook_input ||' "$ROOT"/hooks/*.sh | sed 's#.*/##' | sort -u; }
+
+# bash_matchers <manifest>: every PreToolUse or PostToolUse matcher that reaches the Bash tool,
+# one per line, judged as Claude Code judges it: the tool name against the matcher as a regex
+# (a plain substring over-flags, the safe direction for a pin), a bare `*` or an empty matcher
+# reaching every tool, and a matcher that is not a regex named rather than passed.
+bash_matchers() { jq -r '.hooks | ((.PreToolUse // [])[], (.PostToolUse // [])[]) | .matcher // "*" | . as $m | select($m == "*" or $m == "" or (try ("Bash" | test($m)) catch true))' "$1"; }
 
 test_every_wired_script_exists() {
   for script in $(wired_scripts "$HOOKS_JSON"); do
@@ -36,23 +43,34 @@ test_every_command_goes_through_the_plugin_root() {
   assert_contains "every command runs bash on a plugin-root path" "<none>" "${stray:-<none>}"
 }
 
+test_no_hook_reaches_bash() {
+  reaching=$(bash_matchers "$HOOKS_JSON")
+  assert_contains "no hook reaches Bash" "<none>" "${reaching:-<none>}"
+}
+
 test_the_eight_events_are_wired() {
   events=$(jq -r '.hooks | keys[]' "$HOOKS_JSON" | sort | tr '\n' ' ')
   assert_contains "the eight events" "Notification PostToolUse PreToolUse SessionStart Stop StopFailure SubagentStart SubagentStop " "$events"
 }
 
-# The checks have to be able to fail: a missing script and an unwired script are both named.
-test_a_planted_missing_script_is_named() {
+# The checks have to be able to fail: a missing script, an unwired script and a hook on Bash
+# are all named.
+test_planted_breaches_are_named() {
   jq '.hooks.Stop[0].hooks[0].command = "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/no-such-hook.sh\""' "$HOOKS_JSON" > "$WORK/planted.json"
   named=$(for script in $(wired_scripts "$WORK/planted.json"); do [ -f "$ROOT/hooks/$script" ] || printf '%s' "$script"; done)
   assert_contains "a planted missing script is named" "no-such-hook.sh" "$named"
   ghost=$(comm -23 <(printf 'ghost-hook.sh\n') <(wired_scripts "$HOOKS_JSON"))
   assert_contains "a planted unwired script is named" "ghost-hook.sh" "$ghost"
+  jq '.hooks.PreToolUse += [{matcher: "Bash", hooks: [{type: "command", command: "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/edit-guard.sh\""}]}]' "$HOOKS_JSON" > "$WORK/bash.json"
+  assert_contains "a planted PreToolUse hook on Bash is named" "Bash" "$(bash_matchers "$WORK/bash.json")"
+  jq '.hooks.PostToolUse += [{matcher: "^Bash$", hooks: [{type: "command", command: "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/file-cap.sh\""}]}]' "$HOOKS_JSON" > "$WORK/post-bash.json"
+  assert_contains "a planted PostToolUse regex on Bash is named" "^Bash$" "$(bash_matchers "$WORK/post-bash.json")"
 }
 
 test_every_wired_script_exists
 test_every_event_script_is_wired
 test_every_command_goes_through_the_plugin_root
+test_no_hook_reaches_bash
 test_the_eight_events_are_wired
-test_a_planted_missing_script_is_named
+test_planted_breaches_are_named
 report
