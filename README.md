@@ -18,7 +18,8 @@ that lost its context is re-anchored on the law and the ledger before its next s
 2.6.0 takes the git guard back out: the shell is no longer judged at the tool boundary, and
 the git safety law binds through the skill alone. Version 2.11.0 splits the route parameter
 into nine sub-commands, turns the bare invocation into a guided intake, and adds an agentless
-mode that keeps every helper shape in the main conversation.
+mode that keeps every helper shape in the main conversation; 2.12.0 makes that mode a
+sub-command of its own.
 
 ## What loads when
 
@@ -26,7 +27,7 @@ mode that keeps every helper shape in the main conversation.
 |---|---|---|
 | 1 | `name` + `description` | Always in context, about 100 words |
 | 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.8`), the route table, the group map | Loads when the skill triggers, about 400 lines |
-| 2 | `skills/<route>/SKILL.md`: the nine route sub-commands, about 35 lines each | Only when the user types one; the model cannot invoke them, so they cost it nothing |
+| 2 | `skills/<name>/SKILL.md`: the ten sub-commands, nine routes and the agentless switch, about 35 lines each | Only when the user types one; the model cannot invoke them, so they cost it nothing |
 | 3 | `references/**`: all 122 sections, one file each | Only when a phase names one |
 | hooks | `hooks/hooks.json`: eight events, three guard and anchor scripts plus the notifier | Live from install, no prompt cost; up to half a second per edit of a code file |
 
@@ -59,16 +60,16 @@ its own, and shows the search behind every new symbol (`1.1`, `9.1`). Work the l
 reader, the stage-end scouts, the fresh reviewer, a mechanic, a builder; `5.5`) goes through
 the `Agent` tool on the agent types Claude Code ships itself (`fork`, `Explore`, `Plan`,
 `general-purpose`); `5.5` carries the prompt each shape is sent, pasted whole on every send.
-In agentless mode (`4.4`), switched on by an `agentless` first word on a sub-command or by
-the user's own words, nothing is sent: the same work runs in the main conversation, in the
+In agentless mode (`4.4`), switched on by `/engineering-rules:agentless` or by the user's
+own words, nothing is sent: the same work runs in the main conversation, in the
 same order, and the ledger records that instead of a send.
 
 ## The sub-commands, the intake and agentless mode
 
 The route used to be a parameter of the one skill. Since 2.11.0 every route is a sub-command
 of its own: a skill under `skills/<route>/` that only the user can invoke, so the model can
-never pick full mode by itself. Each one loads the law, names its route, reads an optional
-mode token and hands over the request:
+never pick full mode by itself. Each one loads the law, names its route and hands over the
+request:
 
 | Sub-command | Route | What follows it |
 |---|---|---|
@@ -80,7 +81,7 @@ mode token and hands over the request:
 | `/engineering-rules:triage` | Review triage (`16.2`) | the pasted findings |
 | `/engineering-rules:skill` | Skill authoring (`16.12`) | what the skill should do |
 | `/engineering-rules:design` | Design spec (`15.19`) | the mode or a direction, or nothing to detect it |
-| `/engineering-rules:log` | Update log (`16.13`) | nothing; it takes no mode token |
+| `/engineering-rules:log` | Update log (`16.13`) | nothing |
 
 `/engineering-rules:engineering-rules <request>` still works and classifies the request as
 prose; it carries no route token any more. Typed bare, it runs the intake through the wizard
@@ -88,18 +89,20 @@ tool: what you are here for, then which route, then helpers or agentless, then t
 and the flow starts only when all three are settled (`4.4`). The old picker asked for nine
 options in one question, which the wizard tool cannot hold; the intake reaches them in two.
 
-**Agentless mode** keeps every helper shape (`5.5`) in the main conversation for the whole
-task. It is switched on by `agentless` (or `--agentless`) as the first word after any
-sub-command but `log`, by the same word in your own message, or by the intake's helper
-question; never by the size of the task. Every send the law mandates (`1.8`) is then the same
+**Agentless mode** keeps every helper shape (`5.5`) in the main conversation. It is switched
+on by the tenth sub-command, `/engineering-rules:agentless`: bare, it holds for the task in
+flight and every task that starts in this conversation until `/engineering-rules:agentless
+off`; with a request after it, that request classifies as prose (quick mode unless the words
+name another route) and starts agentless. The same word in your own message, or the intake's
+helper question, switches it on too; the size of the task never does. Every send the law mandates (`1.8`) is then the same
 work done in the session, in the same order: the question batch, the scouts at every stage
 end, the spec review, the five review checks, every count. The ledger records
 `Helpers: agentless, by user choice` once, each affected item carries
 `helper skipped: agentless by user choice`, and the one-line cost is said at task start: the
 review loses its fresh eyes, and the reading lands in the session's context. Nothing else
-moves. Saying so switches it back: the session prints `Helpers: available.` and the sends
-resume from the next run point. Nothing at the tool boundary enforces the mode; the law text
-does.
+moves. `/engineering-rules:agentless off`, or saying so, switches it back: the session prints
+`Helpers: available.` and the sends resume from the next run point. Nothing at the tool
+boundary enforces the mode; the law text does.
 
 ## The law at the tool boundary
 
@@ -210,9 +213,9 @@ Every hook fires inside an agent too, so a builder is under the same guards as t
 question must go through the wizard tool, no banned token may land), `route-picker` (the
 bare slash invocation; the intake must open through the wizard tool and nothing may start),
 `sub-command-full` (`/engineering-rules:full` with a task; full mode by the user's word, a
-ten-item ledger, no route menu) and `agentless-quick` (`/engineering-rules:quick agentless`
-with a task; the Agent tool is never called while the ledger, the scouts and the review still
-run). The runner,
+ten-item ledger, no route menu) and `agentless-quick` (`/engineering-rules:agentless` with a
+task; the Agent tool is never called while the ledger, the scouts and the review still run).
+The runner,
 `claude plugin eval`, is in early access at the time of writing; until it runs here, the cases
 are the written statement of what the plugin promises, and the headless boots below are the
 proof.
@@ -243,8 +246,8 @@ engineering-rules-plugin/
 │   ├── ledger-position.sh               the ledger heading both the notifier and the status line read
 │   └── tests/                           fixture tests, one per script: bash hooks/tests/<name>.test.sh
 ├── skills/
-│   ├── quick/ full/ shape/ walkthrough/ audit/ triage/ skill/ design/ log/
-│   │                                    one SKILL.md each: the route sub-commands, user-invocable only
+│   ├── quick/ full/ shape/ walkthrough/ audit/ triage/ skill/ design/ log/ agentless/
+│   │                                    one SKILL.md each: the route sub-commands and the agentless switch, user-invocable only
 │   └── engineering-rules/
 │       ├── SKILL.md                     the canonical always-on law, routes, map
 │       └── references/
@@ -308,9 +311,10 @@ Seven checks run against the plugin itself, all on `tests/harness.sh`:
   `Bash` tool.
 - `bash tests/hook-caps.test.sh` is the size cap above.
 - `bash tests/sub-commands.test.sh` fails when a route row of `SKILL.md` has no
-  `skills/<route>/SKILL.md`, when a skill directory is not a route row, when a sub-command's
-  name, user-only invocation, law load or mode token is missing, or when a section a route
-  row cites has no file, and proves it can fail by planting each.
+  `skills/<route>/SKILL.md`, when a skill directory is neither a route row nor the agentless
+  switch, when a sub-command's name, user-only invocation or law load is missing or it takes
+  an argument list, when the switch lacks its `off` word, or when a section a route row cites
+  has no file, and proves it can fail by planting each.
 
 `bash hooks/tests/<name>.test.sh` covers each hook script with fixtures: the edit guard's
 nine rules, the law's exemptions, the test-file rows, the grew-versus-kept decision and the
@@ -383,6 +387,12 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.12.0**: agentless is a sub-command, not a token. `/engineering-rules:agentless` switches
+  the mode on for the task in flight and every task that starts in the conversation, until
+  `/engineering-rules:agentless off`; with a request after it, the request classifies as
+  prose and starts agentless. The nine route sub-commands take no mode token any more (no
+  `arguments` list, no `$mode` line), the intake skips its helper question when the switch
+  is already on, and `4.4`, `4.1`, `SKILL.md`, the test and the `agentless-quick` eval say so.
 - **2.11.0**: the route parameter becomes nine sub-commands, the bare invocation becomes an
   intake, and agentless mode arrives. `skills/quick`, `full`, `shape`, `walkthrough`,
   `audit`, `triage`, `skill`, `design` and `log` each hold a short skill only the user can

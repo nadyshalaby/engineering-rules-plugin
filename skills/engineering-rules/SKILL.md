@@ -56,9 +56,10 @@ another.
    This form carries no route token; every route has a sub-command of its own.
 3. **Through a route sub-command**: `/engineering-rules:quick`, `:full`, `:shape`,
    `:walkthrough`, `:audit`, `:triage`, `:skill`, `:design` or `:log`, followed by what that
-   route needs, with `agentless` first when the user wants it. The sub-command loads this
-   skill, picks its row outright, and the classification in 4.1 does not run. The whole
-   contract is 4.4.
+   route needs. The sub-command loads this skill, picks its row outright, and the
+   classification in 4.1 does not run. A tenth, `/engineering-rules:agentless`, picks no
+   route: it keeps every helper shape in this session for the task in flight and every task
+   after it in this conversation, bare or with a request. The whole contract is 4.4.
 
 - **Whole invocation:** `$ARGUMENTS`
 
@@ -76,9 +77,9 @@ of somebody who already said what they want is ceremony, and 4.1 forbids reading
 shape as a request for more of it.
 
 **Agentless mode** (4.4, 1.8) is the user's choice to keep every helper shape in this
-session for the whole task: the `agentless` token on a sub-command, their own words in the
-message that starts the task, or the intake's helper question. It moves the reading here and
-removes nothing.
+session for the whole task: the `/engineering-rules:agentless` sub-command, their own words
+in the message that starts the task, or the intake's helper question. It moves the reading
+here and removes nothing.
 
 ## Definitions, binding wherever the word is used
 
@@ -96,7 +97,7 @@ removes nothing.
 | **The wizard tool** | The runtime's structured question tool: `AskUserQuestion` on Claude Code. |
 | **The agent tool** | The runtime's subagent tool: `Agent` on Claude Code. Every shape runs on a type Claude Code ships itself, none on an agent of this plugin's: `subagent_type: "fork"` for a reader that needs the conversation (the scouts, the question batch), `"Explore"` for a wide read-only search, `"Plan"`, read-only by construction, for the spec reviewer of Phase 2.5, and `"general-purpose"` for the reviewer of the diff, the mechanic and a builder, each sent its shape's prompt from 5.5 pasted whole. No send names a `model`: every helper runs on this session's model. Section 1.8 is this skill's standing request for it. In agentless mode (4.4) nothing is sent to it, and every shape runs here. |
 | **Helper** | Any unit of work sent to the agent tool: a reader, a reviewer, a mechanic or a builder (5.5). Never an owner of a phase, a tick or a claim. |
-| **Agentless mode** | The user's choice, by the `agentless` token on a sub-command, in their own words in the message that starts the task, or through the intake (4.4), to keep every helper shape in this session for the whole task: nothing is sent to the agent tool, and every send 1.8 mandates is the same work done here, in the same order. Recorded once, on the helper line (1.8). |
+| **Agentless mode** | The user's choice, by the `/engineering-rules:agentless` sub-command, in their own words in the message that starts the task, or through the intake (4.4), to keep every helper shape in this session for the whole task: nothing is sent to the agent tool, and every send 1.8 mandates is the same work done here, in the same order. Recorded once, on the helper line (1.8). |
 | **The notification tool** | The runtime's push-notification tool: `PushNotification` on Claude Code. One line to the desktop and, with Remote Control, the phone. |
 | **The ledger substrate** | The runtime's todo tracker when it exposes one; otherwise the printed block. Named once at the first print. |
 | **Exit artifact** | The concrete thing that must exist before a ledger item may tick. One per phase, listed in section 5.1. |
@@ -309,8 +310,8 @@ delegate, which is a permission that never arrives. It is on this line, it is no
 on anyone repeating it, and no further invitation is coming. Where the runtime offers no
 agent tool, every shape below collapses into this session and the reading happens here;
 nothing is skipped because nobody could be sent. The user may choose that same collapse for
-a task, by the `agentless` token on a sub-command, in their own words, or through the
-intake: that is agentless mode (4.4), and it too skips nothing.
+a task, by the `/engineering-rules:agentless` sub-command, in their own words, or through
+the intake: that is agentless mode (4.4), and it too skips nothing.
 
 **Record the verdict once, at task start, on the line that names the ledger substrate:**
 `Helpers: available.`, `Helpers: unavailable, every shape runs in this session.` or, when
@@ -380,6 +381,7 @@ Every substantive prompt takes exactly one route. Pick it from what the user ask
 - **When two routes fit, say so and pick one.** State which and why in one line, then go.
 - **A route that is not quick or full still obeys the always-on law**, including the wizard tool, claim integrity and git safety.
 - **A sub-command outranks the classifier, never the law** (4.4). It picks the row and skips the classification in 4.1; it does not waive a phase, a check or a gate. Full mode named by `/engineering-rules:full` is named by the user, which is the one way full mode ever starts.
+- **`/engineering-rules:agentless` is not a route.** It switches the helper mode (4.4) for the task in flight and every task after it in this conversation, and combines with every row above.
 
 ## The map
 

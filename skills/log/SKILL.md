@@ -7,7 +7,7 @@ disable-model-invocation: true
 # The update log, on demand
 
 The user typed `/engineering-rules:log`. That picks the update log (16.13) outright. It takes
-no mode token and no request: printing a summary is not a task, and it sends no helper.
+no request: printing a summary is not a task, and it sends no helper.
 
 1. **Load the law**, unless its always-on section is already verbatim in this context:
    invoke the Skill tool with `engineering-rules:engineering-rules`. Its intake does not
