@@ -317,8 +317,8 @@ the intake: that is agentless mode (4.4), and it too skips nothing.
 `Helpers: available.`, `Helpers: unavailable, every shape runs in this session.` or, when
 the user chose it, `Helpers: agentless, by user choice; every shape runs in this session.`
 Probe the runtime once, never re-probe mid-task, and never carry the answer over from a
-previous task; agentless needs no probe, only the user's word, and carries the cost line of
-4.4 beside it.
+previous task; agentless needs no probe, only the user's word, which holds for the whole
+conversation once given (4.4), and carries the cost line of 4.4 beside it.
 That recorded line is the only thing the refusal below accepts as an excuse, which is why it
 is written before it is needed rather than produced when it would be convenient.
 

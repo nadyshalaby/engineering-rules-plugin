@@ -193,7 +193,8 @@ or comment out the `notify_desktop` call in `on_stop` for the other.
 The plugin ships no agents. The four shapes the delegation rule (`5.5`) sends work to run on
 the agent types Claude Code ships itself, and `5.5` carries the prompt each shape is sent,
 pasted whole on every send: a built-in type holds none of the law, so the prompt is the only
-thing between it and drift. Every shape runs on the session's model; no send names one.
+thing between it and drift. Every shape runs on the session's model; no send names one. In agentless mode (`4.4`) none
+is sent: the same work runs in the session, in the same order.
 
 | Shape | Agent type | What it may do |
 |---|---|---|
@@ -387,6 +388,12 @@ twelve directions and still says how to author a spec from the contract in `15.3
 
 - **1.0.0**: a mechanical split of the original `CLAUDE.md`, one section per file, text
   unchanged.
+- **2.12.1**: the gaps a sweep of 2.12.0 found. The bold "never in this session" lines of
+  `8.1` and `12.1` name agentless mode as their one exception and `12.1`'s intro reads the
+  check files here under it too; `16.1`'s build-verb veto does not apply to a prompt typed
+  after `/engineering-rules:shape`; `1.8` says the user's word holds for the conversation;
+  the README's helper-shapes section says none is sent in agentless mode; and the
+  route-picker grader is named for the intake it checks.
 - **2.12.0**: agentless is a sub-command, not a token. `/engineering-rules:agentless` switches
   the mode on for the task in flight and every task that starts in the conversation, until
   `/engineering-rules:agentless off`; with a request after it, the request classifies as

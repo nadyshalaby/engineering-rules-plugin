@@ -11,7 +11,7 @@
       "name": "engineering-rules",
       "source": "./",
       "description": "The engineering law and working method as one skill and ten sub-commands. The always-on law, the run discipline and the delegation authorization load with the skill; the remaining sections are read only when the phase calls for them. Invoke it bare to be walked through the routes, or pick one outright with /engineering-rules:quick, :full, :shape, :walkthrough, :audit, :triage, :skill, :design or :log; /engineering-rules:agentless keeps the whole task, or the whole conversation, in the main chat. Hooks enforce the bans at the tool boundary; the helper shapes run on Claude Code's own agent types, briefed by the skill, all on the session's model.",
-      "version": "2.12.0",
+      "version": "2.12.1",
       "category": "workflow",
       "keywords": [
         "engineering-law",
