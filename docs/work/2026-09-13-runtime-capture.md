@@ -1,7 +1,7 @@
 ---
 slug: 2026-09-13-runtime-capture
 title: Runtime capture for explore-feature, real values at every anchor
-status: implementing
+status: verifying
 type: feature
 created: 2026-09-13
 project: engineering-rules-plugin
@@ -25,8 +25,8 @@ sprint_goal: |
 - [x] Phase 1. Clarify (anchor locked, repo brief written)
 - [x] Phase 2. Plan + gate (work-doc written, user "go")
 - [x] Phase 2.5. Spec review (report produced, doc patched)
-- [>] Phase 3. Implement (every task ticked with evidence, every stage committed, scouts run)
-- [ ] Phase 4. Verify (Evidence Ledger complete, triad green, ship-gate rows present)
+- [x] Phase 3. Implement (every task ticked with evidence, every stage committed, scouts run)
+- [>] Phase 4. Verify (Evidence Ledger complete, triad green, ship-gate rows present)
 - [ ] Phase 5. Review (coverage ledger complete, decision table empty, fixes verified)
 - [ ] Phase 6a. Re-verify + land (Steps A, B, C)
 - [ ] Phase 6b. Cleanup sweep (Step D)
@@ -292,7 +292,7 @@ Stage 7, proof:        T18             (the real capture on SyanatBackend, the p
 - [x] T17. Builder and template tests — files: `scripts/tests/build-page.test.sh`,
       `tests/explore-feature-page.test.sh`
       → verify: the fourth argument embeds the blob once; the template list has page-capture.js
-- [ ] T18. The real capture on SyanatBackend from its estimates service test; republish the
+- [x] T18. The real capture on SyanatBackend from its estimates service test; republish the
       send-estimate page — files: none in the plugin
       → verify: the page's Runtime tab shows the run; no `@` in any captured string
 
@@ -853,6 +853,94 @@ Dead code in touched files: 0, no cleanup commit.
 
 Commit: `test(explore-feature): the capture suites, typescript 5 pinned, 2.14.0`, explicit
 paths, no attribution; hash in the Stage 7 entry.
+
+### 2026-09-13, Stage 7 the real run: T18
+
+Stage 6 landed as `1a80b05`. Test mode: the stage is a run of the shipped scripts over
+SyanatBackend, judged by what the capture and the page show; one defect it surfaced got a
+failing check first, then the fix. Placement: no new file.
+
+The run, from `SyanatBackend` at `d0a1afd` with `git status --porcelain` empty before and
+after: `capture-run.sh <dir>/trace.json --test bun test --timeout 30000
+src/modules/work-orders/estimates/tests/estimates.service.test.ts` → 16 pass, 0 fail, and
+`wrote <dir>/capture.json: 37 anchors, 185 calls, 6 branches, 21 threw, exit 0`, 1.06 s
+wall for the whole runner. The run record: mode test, runtime bun, exit 0, 405 events,
+truncated false. 21 of the 37 anchors were called; the 16 silent ones are the repositories,
+the permission lookups and the two email services, which the unit test replaces with fakes
+(`fakeDeps`), and the page says "Loaded, never called on this run" on each. The 21 throws
+are the four domain errors the test provokes: PermissionDenied 8,
+InvalidWorkOrderTransition 8, CustomerEmailMissing 3, ConcurrencyQueueFull 2. Unfinished
+calls 0. Strings carrying `@`: 0 (the same jq filter over a planted `x@y.io` finds 1).
+Masks seen: `<email>` 53 (50 on an `email` key, 3 as a positional argument), `<masked>` 40
+(the fake email service's `sendOtp`, a function whose key matches `otp`), `<fn …>` on every
+injected collaborator, `<bytes 15569>` and `<bytes 16109>` on the rendered PDFs, `<object>`
+98 past depth 4, `<array 2>` 10.
+
+The defect: `<phone>` sat on `issuedDate` 59 times. The stub's `issuedDate` is
+`2026-06-19`, and the phone pattern (`^\+?\d[\d ()-]{6,}\d$`) accepts a hyphenated date.
+Fix in `sink.mjs`: a `DATE` guard (`YYYY-MM-DD` or `DD-MM-YYYY`) that the phone mask skips,
+and the pattern also takes a leading `(` so `(555) 123-4567` is a phone; `rewrite.test.mjs`
+gained the date row and the parenthesised phone (the phone row was red on the old pattern
+first: 46 passed, 1 failed); 16.10's masking paragraph says a hyphenated calendar date is
+not a phone. The run again: `<phone>` on `phone` only (69), `issuedDate` kept 50 times, `@`
+still 0, the same wrote line.
+
+Rebuild and page: `build-page.sh <dir>/trace.json <dir>/excerpts.json <dir>/page.html
+--capture <dir>/capture.json` → `wrote … page.html (243330 bytes, capture embedded)`, the
+blob once, the excerpts still fresh (a rebuild without the capture wrote first). In the
+browser, served from the scratchpad: the ninth tab Runtime with THE RUN (mode, command,
+runtime, started, exit 0, events 405) and PER HOP (anchors, calls, threw, ms per hop); hop
+15 (`h14`, the service's `sendEstimate`) carries `12× 88.8 ms` on its declaration line and
+`true, false` on the `if` at 91; its block reads "Runtime, one test run, 12 calls, 7
+threw" with IN (the deps as `<fn …>`, the ids), OUT (the work order, status
+`estimate_sent`), TOOK "48.3 ms, settled later" and THREW "PermissionDenied: you do not
+have permission to perform this action"; console errors 0. Published to
+https://claude.ai/code/artifact/487665d0-7460-4ca7-8b90-45bf40c4d621 (the 2.13.1 page's
+URL, through `url`), label "2.14.0 capture".
+
+Handoff line for this page: `Captured: 37 anchors, 185 calls, 6 branches, 21 threw, from
+\`bun test --timeout 30000 src/modules/work-orders/estimates/tests/estimates.service.test.ts\`,
+exit 0`.
+
+Caps: sink.mjs 222 lines (`callRecorders` 39 inside its braces, as Stage 2 counted it,
+41 with the signature and the closing brace), rewrite.test.mjs 164, 16.10 302.
+
+Triad: 13 suites, 13 pass (no-control-bytes 214 with the new text, rewrite 47);
+shellcheck clean over the seven globs; `claude plugin validate --strict .` passed.
+
+#### Perf-scout (stage 7, 2026-09-13)
+
+Coverage: scope 3 | covered by a table 2 | no table: 16.10 (prose) | unreadable: none (paths in 3, read 3)
+
+| Finding | Catalog ID | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|---|
+| sync append | perf.async.sync-blocking | sink.mjs:218 | `appendFileSync` in the flush | none: the flush must complete inside `exit`, buffered every 250 ms, Stage 2's row | false-positive |
+| a Set, a timer | perf.memory.unbounded-cache, perf.memory.leaked-listeners | sink.mjs:85, :205 | the cycle guard of one serialisation; the flush timer, unref'd and cleared on the last flush | none, Stage 2's rows | false-positive |
+| JSON | perf.obs.eager-log-serialization | sink.mjs:86, :171 | serialising the event is the sink's job, every value capped first | none | false-positive |
+| a comment | perf.loop-body-candidate | sink.mjs:132 | not a loop | none | false-positive |
+
+The 18 rows over rewrite.test.mjs are the Stage 6 rows, unchanged.
+
+#### Law-scout (stage 7, 2026-09-13)
+
+Coverage: paths handed in 3 | paths readable 3
+
+| rule_id | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|
+| none | | | | |
+
+Design scout: no UI file in scope (the page's assets were not touched; the page was
+rebuilt from them).
+
+Sweep: 1 debug output 0; 2 commented-out code 0, `removed:` 0; 3 ownerless markers 0; 4
+dead code: `DATE` declared once and read once; 5 unused variables none; 9 stale references:
+the two "phone" lines in README and CHANGELOG stay true. Reuse search: no date pattern
+anywhere in the capture modules or the page assets (`grep` for `\d{4}-`, `calendar date`,
+`isoDate`, `DATE` finds nothing outside sink.mjs). Dead code in touched files: 0, no
+cleanup commit.
+
+Commit: `fix(explore-feature): a hyphenated date is not a phone number, 2.14.0`, explicit
+paths, no attribution; hash in the Phase 4 entry.
 
 ## 7. Sprint Review
 

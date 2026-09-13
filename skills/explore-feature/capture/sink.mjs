@@ -7,7 +7,9 @@ import { appendFileSync } from 'node:fs';
 export const CAPS = { depth: 4, string: 200, items: 20, keys: 40, bytes: 2048, events: 20000 };
 const SECRET_KEY = /pass(word|wd)?|secret|token|api[-_]?key|authorization|cookie|session|otp|ssn|iban|card|private[-_]?key|credential/i;
 const EMAIL = /[^\s@"'<>]+@[^\s@"'<>]+\.[A-Za-z]{2,}/g;
-const PHONE = /^\+?\d[\d ()-]{6,}\d$/;
+const PHONE = /^(\+|\()?\d[\d ()-]{6,}\d$/;
+// A hyphenated calendar date has the digits and the separators of a phone number and is not one.
+const DATE = /^(\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})$/;
 const JWT = /^eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\./;
 // A token is long and mixes cases with digits; a uuid, a hex hash or a long word is not one.
 const TOKEN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z0-9_\-+/=]{32,}$/;
@@ -15,7 +17,7 @@ const TOKEN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z0-9_\-+/=]{32,}$/;
 // maskString(text): personal or secret-shaped text becomes a marker; the rest is cut.
 export function maskString(text) {
   if (JWT.test(text) || TOKEN.test(text)) return '<token>';
-  if (PHONE.test(text)) return '<phone>';
+  if (PHONE.test(text) && !DATE.test(text)) return '<phone>';
   const masked = text.replace(EMAIL, '<email>');
   return masked.length > CAPS.string ? masked.slice(0, CAPS.string) + '…' : masked;
 }

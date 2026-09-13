@@ -81,7 +81,8 @@ function checkRewrite(sampleFile, sample) {
 
 function checkMasks() {
   check(maskString('nady@example.com wrote') === '<email> wrote', 'an email is masked');
-  check(maskString('+20 10 1170 0133') === '<phone>', 'a phone number is masked');
+  check(maskString('+20 10 1170 0133') === '<phone>' && maskString('(555) 123-4567') === '<phone>', 'a phone number is masked');
+  check(maskString('2026-06-19') === '2026-06-19' && maskString('19-06-2026') === '19-06-2026', 'a hyphenated date is not a phone number');
   check(maskString('eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abc') === '<token>', 'a jwt is masked');
   check(maskString('x'.repeat(300)).length === 201, 'a long string is cut to 200 and an ellipsis');
   check(sameJson(capped({ password: 'p', nested: { apiKey: 'k', ok: 1 } }), { password: '<masked>', nested: { apiKey: '<masked>', ok: 1 } }), 'secret-shaped keys are masked at any depth');
