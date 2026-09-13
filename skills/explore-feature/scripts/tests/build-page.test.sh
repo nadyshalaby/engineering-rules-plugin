@@ -2,7 +2,8 @@
 # Fixture tests for build-page.sh: the page is one self-contained file with every marker
 # replaced, both JSON blobs embedded with < escaped and the title HTML-escaped; a missing
 # input, a stale excerpts file, a broken template and a hardcoded secret in an excerpt are
-# refused with nothing written, the secret never printed.
+# refused with nothing written, the secret never printed; a capture is embedded once and
+# re-checked, and one with a hop the trace lacks, a secret, or no file at all is refused.
 # Run: bash skills/explore-feature/scripts/tests/build-page.test.sh
 # BUILD_PAGE_SH points the test at another copy of the script, for a watched failure.
 # shellcheck source-path=SCRIPTDIR
@@ -82,9 +83,40 @@ test_an_excerpt_id_that_is_not_a_token_is_refused() {
   refuses "excerpt id with a path in it" "excerpt id is not a plain token: ../evil" "$WORK/trace.json" "$WORK/evil-ex.json" "$WORK/never.html"
 }
 
+# capture_fixture <out>: a capture.json shaped by the sample trace, one anchor per non-type
+# hop at its declaration line with one call each, so the builder's checks have something
+# real to pass and the mutations below something to break.
+capture_fixture() {
+  jq '([.hops[] | select(.kind != "type")] | to_entries | map({ id: .key, hop: .value.id, file: .value.file, line: .value.line, name: .value.symbol, kind: "function",
+        calls: [{ id: (.key + 1), seq: .key, in: ["sample"], out: { ok: true }, ms: 1.5 }], branches: [] })) as $anchors
+    | { version: 1, run: { mode: "test", command: "bun test", runtime: "bun", started: "2026-09-13T00:00:00Z", exit: 0, events: 12, truncated: false },
+        anchors: $anchors, hops: ($anchors | group_by(.hop) | map({ hop: .[0].hop, anchors: length, calls: length, threw: 0, ms: 1.5 })) }' "$WORK/trace.json" > "$1"
+}
+
+test_a_capture_is_embedded_once_and_checked() {
+  capture_fixture "$WORK/capture.json"
+  out=$(build "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/page-c.html" --capture "$WORK/capture.json")
+  assert_contains "capture: the wrote line says so" "capture embedded" "$out"
+  assert_contains "capture: exit 0" "exit 0" "$out"
+  assert_eq "capture: the blob is embedded once" 1 "$(grep -c '"version":1,"run":{"mode":"test"' "$WORK/page-c.html")"
+  assert_eq "capture: page-capture.js is inlined" 1 "$(grep -c "Explore.registerPanel('runtime'" "$WORK/page-c.html")"
+  assert_eq "no capture: the blob is null" "null" "$(grep -A1 'id="capture-data"' "$WORK/page.html" | tail -n 1)"
+  jq '.anchors[0].hop = "nope"' "$WORK/capture.json" > "$WORK/bad-hop.json"
+  refuses "capture with a hop the trace lacks" "capture does not match the trace: anchor 0: hop nope is not in the trace" "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/never.html" --capture "$WORK/bad-hop.json"
+  key=$(printf 'AKIA%s' IOSFODNN7EXAMPLE)
+  jq --arg k "$key" '.anchors[0].calls[0].in[0] = $k' "$WORK/capture.json" > "$WORK/leaky.json"
+  refuses "capture carrying a secret" "the capture carries a hardcoded secret" "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/never.html" --capture "$WORK/leaky.json"
+  assert_missing "capture carrying a secret: the value is never printed" "$key" "$(build "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/never.html" --capture "$WORK/leaky.json")"
+  refuses "missing capture file" "capture file does not exist" "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/never.html" --capture "$WORK/nope-capture.json"
+  assert_contains "--capture with no value prints the usage" "usage: build-page.sh" "$(build "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/never.html" --capture)"
+  out=$(build "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/page-c2.html" "$ASSETS" --capture="$WORK/capture.json")
+  assert_contains "the assets dir and --capture= together" "capture embedded" "$out"
+}
+
 test_the_page_is_self_contained
 test_the_title_is_escaped
 test_bad_inputs_are_refused
 test_a_secret_in_an_excerpt_is_refused
 test_an_excerpt_id_that_is_not_a_token_is_refused
+test_a_capture_is_embedded_once_and_checked
 report

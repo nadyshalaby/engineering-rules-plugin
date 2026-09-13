@@ -7,7 +7,7 @@ created: 2026-09-13
 project: engineering-rules-plugin
 related: []
 base: 5c2c495
-current_task: T15
+current_task: T18
 worktree: null
 branch: null
 page_url: https://claude.ai/code/artifact/cb124491-1c35-4e68-839d-7bbf10312799
@@ -281,15 +281,15 @@ Stage 7, proof:        T18             (the real capture on SyanatBackend, the p
 - [x] T14. Sub-skill, README, CHANGELOG, manifests at 2.14.0 — files: `skills/explore-feature/SKILL.md`,
       `README.md`, `CHANGELOG.md`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`
       → verify: `grep -c 2.14.0` on each; `claude plugin validate --strict .`
-- [ ] T15. Tests for the rewriter — files: `skills/explore-feature/capture/tests/rewrite.test.sh`,
+- [x] T15. Tests for the rewriter — files: `skills/explore-feature/capture/tests/rewrite.test.sh`,
       `rewrite.test.mjs`, a fixture file
       → verify: watched failure on a planted un-instrumented function, then green
-- [ ] T16. Tests for the runner: Bun fixture in test and live mode, Node fixture in test mode,
+- [x] T16. Tests for the runner: Bun fixture in test and live mode, Node fixture in test mode,
       masking, throw, branch, repo untouched — files: `scripts/tests/capture-run.test.sh`,
       `scripts/tests/fixtures/capture-bun.fixture.sh`, `capture-node.fixture.sh`; the live
       fixture app binds port 0 and writes the port it got to a file, never a fixed port
       → verify: green, and a planted raw email in the JSONL is refused by the scan
-- [ ] T17. Builder and template tests — files: `scripts/tests/build-page.test.sh`,
+- [x] T17. Builder and template tests — files: `scripts/tests/build-page.test.sh`,
       `tests/explore-feature-page.test.sh`
       → verify: the fourth argument embeds the blob once; the template list has page-capture.js
 - [ ] T18. The real capture on SyanatBackend from its estimates service test; republish the
@@ -722,6 +722,137 @@ added, nothing to search. Dead code in touched files: 0 (prose), no cleanup comm
 
 Commit: `docs(explore-feature): the route runs the capture, 2.14.0`, explicit paths, no
 attribution; hash in the Stage 6 entry.
+
+### 2026-09-13, Stage 6 tests: T15, T16, T17
+
+Stage 5 landed as `ad81150`. Test mode: the stage is the tests, and every suite was watched
+red on a mutated copy before it was believed green (below). Placement: `capture/tests/`
+beside the modules it tests (`rewrite.test.sh`, `rewrite.test.mjs`, `fixtures/sample.ts`);
+the runner's suite and its two fixtures beside the other script suites under
+`scripts/tests/` and `scripts/tests/fixtures/`, in the shape `sample-repo.fixture.sh`
+already has (`build_<x>_repo`, `write_<x>_trace`).
+
+Six things the plan did not name, found here and decided here:
+- `bun add -d typescript` installs typescript 7.0.2, which ships the Go compiler only
+  (`main: null`, `exports["."]` is `lib/version.cjs`, so `require('typescript')` returns
+  `{ version, versionMajorMinor }` and `ts.createSourceFile` is undefined); every earlier
+  proof ran on the backend's 5.9.3 through the spike's symlink. `resolveTypescript` now
+  checks for the compiler API and refuses with the version and the way out;
+  `EXPLORE_CAPTURE_TYPESCRIPT=<dir>` names another directory whose `node_modules` holds a
+  5, since nothing is installed into an explored repository; both fixtures and the rewrite
+  wrapper pin `typescript@5` (0.03 s from bun's cache); 16.10 (the run's environment), 16.9
+  (the refusals), README and CHANGELOG say so. SyanatBackend carries 5.9.3, so T18 needs no
+  override.
+- T16's "planted raw email refused by the scan" cannot happen: the 9.5 block judges secrets,
+  not emails, and the sink masks emails before disk anyway. The refusal test plants the AWS
+  documentation example key, assembled at runtime so no literal sits in the fixture, and
+  proves the refusal line, the deleted aggregate and events, and the untouched repo.
+- The sink records an `async` function at its `return` statement, with the resolved value
+  and no `async` flag; the flag marks a Promise handed back, recorded when it settles
+  (sink.mjs, the foreign-thenable comment). The suite's first draft expected the flag on
+  `greet`; the fixture's arrow now hands back a promise, so the aggregate's `async` fold is
+  proven end to end and the `async` function's shape is asserted as it is.
+- `tests/hook-caps.test.sh` audits `skills/*/capture/tests/*.sh` too (35 files, was 34), and
+  the README's shellcheck command carries the same glob.
+- macOS sets `TMPDIR` with a trailing slash, so the harness's `WORK` carried a double slash
+  the runner's printed paths do not (it prints the trace directory as `cd` sees it);
+  `capture-run.test.sh` normalises `WORK` once through `cd`/`pwd`.
+- T15's "planted un-instrumented function" is three copies through `CAPTURE_DIR`, not one:
+  a sink that writes `<mail>`, a `shared.mjs` without the API check, a rewriter that skips
+  arrows; the suite reads a missing anchor as `-1` so the last one reds four checks instead
+  of stopping the run.
+
+Landed: `capture/tests/rewrite.test.sh` (installs `typescript@5` into a scratch root, skips
+without bun, node or the install), `rewrite.test.mjs` (46 checks: env, compiler, the
+rewriter over `fixtures/sample.ts`, the masks, the rewritten sample under the sink with
+every event checked), `scripts/tests/capture-run.test.sh` with `fixtures/capture-bun.fixture.sh`
+and `capture-node.fixture.sh` (47 checks: usage and missing inputs, Bun test mode, Node
+test mode and the same-shape compare, `bun test` through `afterAll` and the `bun run t`
+child and the override, the no-anchor refusal, the leak refusal, live mode on port 0 with
+two requests, `--stop` and a second stop), `build-page.test.sh` (`capture_fixture` and the
+`--capture` case: embedded once, checked, a hop the trace lacks, a secret, a missing file,
+no value, assets dir with `--capture=`), `explore-feature-page.test.sh` (the capture is
+optional: the guard, the blob element, the two seams, the keys legend), `hook-caps.test.sh`
+(the glob), `shared.mjs` (`ENV_TYPESCRIPT`, the API check, the require error cut to its
+first line), 16.9 and 16.10 (the requirement and the refusal), README (the test paragraph,
+`typescript` 5), CHANGELOG (the override).
+
+Proven, pasted in the session:
+- T15: `rewrite.test.sh` → 46 passed, 0 failed, on typescript 5.9.3; watched red through
+  `CAPTURE_DIR`: sink writing `<mail>` → 43 passed, 3 failed; API check dropped → "a
+  typescript without the compiler API is refused" failed, exit 1; arrows skipped → 42
+  passed, 4 failed (names, lines, the anchor table, the password inside an arrow's
+  arguments);
+- T16: `capture-run.test.sh` → 47 passed, 0 failed; watched red through `CAPTURE_RUN_SH` on
+  a runner whose `scan` is a no-op → the three leak checks failed (the key printed, the
+  aggregate written, exit 0); the fixture repos read `git status --porcelain` empty after
+  every mode; the live server wrote its port 0 pick to `$PORT_FILE`, two `curl`s answered
+  `hi nady` and `hi x@y.io`, the capture carries `nady` and `<email>`;
+- T17: `build-page.test.sh` → 56 passed, 0 failed; watched red through `BUILD_PAGE_SH` on a
+  builder whose `check_capture` is a no-op → 4 failed (the hop-less capture named, exit,
+  writes nothing, the missing file); `explore-feature-page.test.sh` → 24 passed, 0 failed;
+  watched red through `ASSETS_DIR` on a `page-capture.js` without `if (!capture) return;`
+  → 23 passed, 1 failed;
+- `hook-caps.test.sh` → 5 passed over 35 files; the seven globs on disk count 35, one of
+  them under `capture/tests/`;
+- the typescript finding: fresh `bun add -d typescript` → 7.0.2, `main: null`, `bin`
+  `{"tsc"}`; `typescript@5` → 5.9.3 with `createSourceFile` a function and `ScriptTarget`
+  an object.
+Caps: rewrite.test.mjs 163 lines (functions 4 to 26), capture-run.test.sh 144,
+capture-bun.fixture.sh 90, capture-node.fixture.sh 15, rewrite.test.sh 27, sample.ts 49,
+shared.mjs 96 (`resolveTypescript` 11, `loadTrace` 21), build-page.test.sh 122,
+explore-feature-page.test.sh 105, hook-caps.test.sh 60, README 455, CHANGELOG 221, 16.9
+351, 16.10 301; hook-caps holds every shell function under 40.
+
+Triad: 13 suites, 13 pass (catalog-ids 5, design-scout 67, explore-feature-page 24,
+hook-caps 5, hooks-wiring 12, law-scout 96, no-control-bytes 208, sub-commands 11,
+build-page 56, capture-run 47, page-highlight 15, verify-trace 110, rewrite 46);
+shellcheck clean over the seven globs, `capture/tests` included; `claude plugin validate
+--strict .` passed. Boot: nothing here runs at boot.
+
+#### Perf-scout (stage 6, 2026-09-13)
+
+Coverage: scope 14 | covered by a table 10 | no table: README, CHANGELOG, 16.9, 16.10 (prose) | unreadable: none (paths in 14, read 14)
+
+| Finding | Catalog ID | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|---|
+| sync fs in the test | perf.async.sync-blocking | rewrite.test.mjs:45-53, :135, :150 | `mkdirSync`, `writeFileSync`, `mkdtempSync`, `rmSync`, `readFileSync` | none: a one-shot test script, no request path | false-positive |
+| sync fs in the loader | perf.async.sync-blocking | shared.mjs:31, :42 | the trace read and the hop files checked once at process start | none: runs before the command's own code, once | false-positive |
+| a Map | perf.memory.unbounded-cache | rewrite.test.mjs:77, shared.mjs:38 | a one-entry literal; the file map bounded by the trace's hops, built once | none | false-positive |
+| JSON in a check | perf.obs.eager-log-serialization | rewrite.test.mjs:28, :68 | `sameJson`, a 40-char slice in a message | none: assertions | false-positive |
+| top-level lines | perf.loop-body-candidate | rewrite.test.mjs:136, :156, :160, shared.mjs:88 | not inside a loop | none | false-positive |
+| sequential awaits | perf.network.sequential-awaits | rewrite.test.mjs:21-22, :101, :152-153 | three local module loads; calls whose event order the suite asserts | none: no latency to overlap, order is the point | false-positive |
+
+#### Law-scout (stage 6, 2026-09-13)
+
+Coverage: paths handed in 14 | paths readable 14
+
+| rule_id | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|
+| ban.suppression | README.md:157, CHANGELOG.md:162 | prose naming the ban, history naming the guard | none | false-positive |
+| ban.empty-catch | tests/explore-feature-page.test.sh:90, CHANGELOG.md:189 | the needle of an `assert_missing`; history | none | false-positive |
+| ban.bare-error | capture/tests/fixtures/sample.ts:20, scripts/tests/fixtures/capture-bun.fixture.sh:19, CHANGELOG.md:190 | fixture sources throwing `RangeError` so the suites prove the rethrow keeps the error; history | none: test fixtures, exempt by Definitions | false-positive |
+
+Design scout: no UI file in scope.
+
+Sweep: 1 debug output 0 (`rewrite.test.mjs` prints its check lines through `console.log`
+the way the shell harness prints through `printf`; no `debugger`, no `set -x`); 2
+commented-out code 0, `removed:` 0; 3 ownerless markers 0 (the grep's one hit is
+`mktemp`'s `XXXXXX` template); 4 dead code: every helper in the three shell files and the
+six check functions has a caller (counted, 1 to 35 each); 5 unused variables: shellcheck
+clean, every import in the two mjs files read at least once past its import line; 9 stale
+references: no "two scripts", "five markers" or "11 suites" left in README, CHANGELOG or
+16.9, and the CHANGELOG's "three suites" is what the tree has. Reuse search: the fixture
+shape reuses `sample-repo.fixture.sh`'s (`build_sample_repo`, `write_sample_trace` →
+`build_capture_bun_repo`, `write_capture_trace`; a second repo was needed because the
+sample repo carries no `typescript`, no `bun:test` case and no server); `run` follows the
+per-suite helper the other suites keep (`build` in build-page.test.sh); `ENV_TYPESCRIPT`
+sits beside `ENV_TRACE`, `ENV_OUT` and `ENV_BUN_TEST` and the suite reads it;
+`checkCompilerApi` had no equivalent (`grep -rn "compiler API"` found nothing before it).
+Dead code in touched files: 0, no cleanup commit.
+
+Commit: `test(explore-feature): the capture suites, typescript 5 pinned, 2.14.0`, explicit
+paths, no attribution; hash in the Stage 7 entry.
 
 ## 7. Sprint Review
 

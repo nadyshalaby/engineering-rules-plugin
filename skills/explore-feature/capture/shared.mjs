@@ -47,15 +47,24 @@ export function loadTrace(tracePath) {
   return { ok: true, root: trace.root, files };
 }
 
-// resolveTypescript(root): the compiler installed under the explored repository, resolved
-// the way the repository's own code would resolve it.
+// ENV_TYPESCRIPT names a directory whose node_modules holds the compiler to rewrite with, for
+// a repository that carries none the rewriter can call (typescript 7 on npm is the Go
+// compiler with no JS API); unset, the explored repository's own install is used.
+export const ENV_TYPESCRIPT = 'EXPLORE_CAPTURE_TYPESCRIPT';
+
+// resolveTypescript(root): the compiler installed under the explored repository (or under
+// the directory ENV_TYPESCRIPT names), resolved the way the repository's own code would
+// resolve it, and checked to carry the compiler API the rewriter calls.
 export function resolveTypescript(root) {
+  const from = process.env[ENV_TYPESCRIPT] || root;
+  let ts;
   try {
-    const require = createRequire(resolve(root) + '/');
-    return { ok: true, ts: require('typescript') };
+    ts = createRequire(resolve(from) + '/')('typescript');
   } catch (err) {
-    return { ok: false, reason: 'typescript is not installed under ' + root + ' (' + err.message + ')' };
+    return { ok: false, reason: 'typescript is not installed under ' + from + ' (' + String(err.message).split('\n')[0] + ')' };
   }
+  if (typeof ts.createSourceFile === 'function' && ts.ScriptTarget) return { ok: true, ts };
+  return { ok: false, reason: 'typescript ' + ts.version + ' under ' + from + ' has no compiler API; the capture needs TypeScript 5 (set ' + ENV_TYPESCRIPT + ' to a directory whose node_modules holds one)' };
 }
 
 // hopFor(ranges, line): the hop whose range holds the line; the narrowest range wins when

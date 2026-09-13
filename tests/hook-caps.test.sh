@@ -1,6 +1,6 @@
 #!/bin/bash
 # Guard: the law's size caps bind this plugin's own scripts (SKILL.md 1.1): every shell file
-# under hooks/, tests/ and the skills' scripts/ stays under 500 lines and every function in them under 40. A
+# under hooks/, tests/, the skills' scripts/ and capture/tests/ stays under 500 lines and every function in them under 40. A
 # function is a `name() {` or `name() (` line down to the first line that is only `}` or `)`,
 # counted between.
 # Run: bash tests/hook-caps.test.sh
@@ -29,7 +29,7 @@ long_files() {
 # audited <command>: runs the command over every audited shell file, or over CAP_DIR's files.
 audited() {
   if [ -n "${CAP_DIR:-}" ]; then "$@" "$CAP_DIR"/*.sh
-  else "$@" "$ROOT"/hooks/*.sh "$ROOT"/hooks/tests/*.sh "$ROOT"/tests/*.sh "$ROOT"/skills/*/scripts/*.sh "$ROOT"/skills/*/scripts/tests/*.sh "$ROOT"/skills/*/scripts/tests/fixtures/*.sh; fi
+  else "$@" "$ROOT"/hooks/*.sh "$ROOT"/hooks/tests/*.sh "$ROOT"/tests/*.sh "$ROOT"/skills/*/scripts/*.sh "$ROOT"/skills/*/scripts/tests/*.sh "$ROOT"/skills/*/scripts/tests/fixtures/*.sh "$ROOT"/skills/*/capture/tests/*.sh; fi
 }
 
 count_args() { printf '%s' "$#"; }

@@ -279,9 +279,11 @@ engineering-rules-plugin/
 │   ├── explore-feature/
 │   │   ├── SKILL.md                     the explore-feature sub-command, user-invocable only
 │   │   ├── scripts/                     verify-trace.sh with verify-trace.jq, build-page.sh, capture-run.sh with
-│   │   │                                capture-aggregate.jq and capture-verify.jq, secret-scan.sh; tests/ with a sample-repo fixture
+│   │   │                                capture-aggregate.jq and capture-verify.jq, secret-scan.sh; tests/ with the
+│   │   │                                sample-repo fixture and the Bun and Node capture fixtures
 │   │   ├── capture/                     the load-time rewrite and its sink: shared.mjs, rewrite.mjs, sink.mjs,
-│   │   │                                preload.bun.ts, register.node.mjs, hooks.node.mjs
+│   │   │                                preload.bun.ts, register.node.mjs, hooks.node.mjs; tests/ with rewrite.test.sh,
+│   │   │                                rewrite.test.mjs and a sample file
 │   │   └── assets/                      the page template: page.html, page.css, page.js, page-highlight.js, page-flow.js, page-capture.js
 │   └── engineering-rules/
 │       ├── SKILL.md                     the canonical always-on law, routes, map
@@ -365,18 +367,32 @@ events; the status line. Every one of them can be pointed at a mutated copy of i
 through an environment variable (`EDIT_GUARD_SH`, `FILE_CAP_SH`, `RE_ANCHOR_SH`,
 `PROGRESS_NOTIFY_SH`, `STATUSLINE_SH`; `HOOKS_JSON`, `CAP_DIR`, `SKILLS_DIR` and `ASSETS_DIR`
 for the four repo checks), so a run that watches the failure is one line.
-`bash skills/explore-feature/scripts/tests/<name>.test.sh` covers the two explore-feature
-scripts on a sample-repo fixture: `verify-trace` (the sample trace passes; one mutation per
-check is refused with its own line and nothing written; excerpts are copied from disk; an
-uncommitted change to a cited file is named) and `build-page` (one self-contained page with
+`bash skills/explore-feature/scripts/tests/<name>.test.sh` covers the three explore-feature
+scripts on fixtures: `verify-trace` (the sample trace passes; one mutation per check is
+refused with its own line and nothing written; excerpts are copied from disk; an
+uncommitted change to a cited file is named), `build-page` (one self-contained page with
 every marker gone, both blobs embedded with `<` escaped and the title escaped; a missing
 input, a stale excerpts file, a broken template and a hardcoded secret in an excerpt are
-refused, the secret judged by the law scout's own block in `9.5` and never printed), each pointable at a
-mutated copy through `VERIFY_TRACE_SH` or `BUILD_PAGE_SH`, the secret scan at another copy of
-`9.5` through `LAW_SCOUT_MD`. `shellcheck -x -P SCRIPTDIR
+refused, the secret judged by the law scout's own block in `9.5` and never printed; a
+capture is embedded once and re-checked, and one with a hop the trace lacks, a secret or no
+file at all is refused) and `capture-run` (a small Bun project and its Node twin, each
+carrying its own `typescript` 5 from bun's cache: test mode records every call, branch and
+throw with the email masked and the repo untouched, Bun and Node record the same, `bun
+test` flushes through `afterAll` and the override silences it, a command that reaches no
+anchor and a value the masks miss are refused with nothing left behind, and live mode
+answers a real request and stops on `--stop`; it prints a skip line without bun, node, jq
+and curl), each pointable at a mutated copy through `VERIFY_TRACE_SH`, `BUILD_PAGE_SH` or
+`CAPTURE_RUN_SH`, the secret scan at another copy of `9.5` through `LAW_SCOUT_MD`.
+`bash skills/explore-feature/capture/tests/rewrite.test.sh` runs the rewriter and the sink
+over a sample file (`rewrite.test.mjs`, pointable at another copy of the modules through
+`CAPTURE_DIR`), on `typescript@5` installed from bun's cache: a compiler without the API
+(7 ships none) is refused with `EXPLORE_CAPTURE_TYPESCRIPT` named as the way out, the
+rewritten file parses with its line count kept, the anchors are named in order, the
+rewritten module behaves as the original, and every event the sink records is checked,
+the masks included. `shellcheck -x -P SCRIPTDIR
 -S style hooks/*.sh hooks/tests/*.sh tests/*.sh skills/*/scripts/*.sh
-skills/*/scripts/tests/*.sh skills/*/scripts/tests/fixtures/*.sh` is clean, and
-`claude plugin validate --strict .` passes.
+skills/*/scripts/tests/*.sh skills/*/scripts/tests/fixtures/*.sh skills/*/capture/tests/*.sh`
+is clean, and `claude plugin validate --strict .` passes.
 
 ## Install
 

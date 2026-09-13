@@ -3,8 +3,9 @@
 # the law's caps. The six markers build-page.sh replaces are each there once, no host is
 # reached but the svg namespace, the scripts carry no console call, debugger, empty catch
 # or innerHTML write, the stylesheet has the three theme blocks and paints the body, the skipped
-# lines are explained (legend, tooltip, count, band), and no
-# template file is over 500 lines. Run: bash tests/explore-feature-page.test.sh
+# lines are explained (legend, tooltip, count, band), the capture is optional (its script
+# registers nothing without one), and no template file is over 500 lines.
+# Run: bash tests/explore-feature-page.test.sh
 # ASSETS_DIR points the test at another copy of the template, for a watched failure.
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=harness.sh
@@ -89,8 +90,16 @@ test_the_theme_switch_is_wired() {
   assert_missing "the choice is not swallowed on a storage error" "catch (err) {}" "$(cat "$ASSETS/page.js")"
 }
 
+test_the_capture_is_optional() {
+  assert_eq "page-capture.js registers nothing without a capture" 1 "$(grep -c 'if (!capture) return;' "$ASSETS/page-capture.js")"
+  assert_eq "the template carries the capture blob" 1 "$(grep -c 'id="capture-data"' "$ASSETS/page.html")"
+  assert_eq "page.js exposes the two seams" 2 "$(grep -c 'const registerPaneExtra = \|const registerLineMark = ' "$ASSETS/page.js")"
+  assert_eq "the keys legend reaches the ninth tab" 1 "$(grep -c '<kbd>1</kbd> to <kbd>9</kbd>' "$ASSETS/page.html")"
+}
+
 test_scripts_parse
 test_planted_defects_are_named
 test_the_skipped_lines_are_explained
 test_the_theme_switch_is_wired
+test_the_capture_is_optional
 report
