@@ -2,6 +2,16 @@
 
 One entry per version, newest first. The README says what the plugin is now; this file says how it got there.
 
+- **2.13.1**: the grey lines explain themselves, the verifier holds the line for weaker
+  models, and the switch is `agents`. A dimmed excerpt line now sits on a grey band with a
+  dotted rail and a tooltip, its excerpt header counts the lines not on this path, and the
+  help overlay has a legend for the entry line, a skipped line and a comment.
+  `verify-trace.sh` refuses an `invoked` list that leaves out the hop's own line or a child's
+  call line, or that names a blank or comment-only line, and prints a note when no hop dims
+  at all, so a trace from a weaker model cannot ship inconsistent dimming; `16.9`, `16.10`
+  and `16.11` say the rules before the tool does. `/engineering-rules:helpers` is renamed
+  `/engineering-rules:agents`, the word a user reads as "send subagents"; agentless stays the
+  default and `agents off` goes back to it.
 - **2.13.0**: the walkthrough route becomes `explore-feature`, and its output becomes a
   verified page. `/engineering-rules:explore-feature <entry point>` walks one entry to its
   leaves and writes `trace.json` to the v2 contract in `16.10`;

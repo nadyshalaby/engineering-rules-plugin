@@ -22,8 +22,8 @@ In this order, before anything else:
    through the wizard tool (4.4), one question, and nothing else.
 3. **Say the route and the mode in one line** (1.7, step 2): *"Shaping."*, then
    *"Agentless."* with the cost line 4.4 names, agentless being the default, unless helpers
-   were switched on by `/engineering-rules:helpers` earlier in this conversation or named in
-   the request, then *"Helpers on, because you asked for it."*.
+   were switched on by `/engineering-rules:agents` earlier in this conversation or named in
+   the request, then *"Agents on, because you asked for it."*.
 4. **Read 16.1 from disk and run it**: one or two forking questions per turn, every one
    through the wizard tool, nothing edited, until the user signals intent to build. The
    handoff runs the task start in 1.7 under the route 16.1 names, full mode unless the user

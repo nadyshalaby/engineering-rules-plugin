@@ -72,13 +72,13 @@ test_every_check_refuses_its_mutation() {
   refused "unresolved with no candidates" '.hops[7].candidates = []' "hop h7: an unresolved hop needs at least one candidate"
   refused "file outside the root" '.hops[1].file = "../outside.ts" | .files[1].path = "../outside.ts"' "hop h1: file must be a relative path inside root"
   refused "file that does not exist" '.hops[1].file = "src/gone.ts" | .files[1].path = "src/gone.ts"' "hop h1: file does not exist under root: src/gone.ts"
-  refused "line past the end of the file" '.hops[0].line = 99 | .hops[0].range = [5, 99]' "hop h0: line 99 is outside src/orders/orders.routes.ts (7 lines)"
+  refused "line past the end of the file" '.hops[0].line = 99 | .hops[0].range = [5, 99] | .hops[0].invoked = [5, 7, 99]' "hop h0: line 99 is outside src/orders/orders.routes.ts (7 lines)"
   refused "evidence typed from memory" '.hops[2].evidence = "export function createOrder"' "hop h2: evidence not found on src/orders/controllers/orders.controller.ts:6"
   refused "range not around the line" '.hops[1].range = [5, 11]' "hop h1: range 5-11 does not contain line 4"
   refused "excerpt over the cap" '.hops[6].file = "src/big.ts" | .hops[6].line = 1 | .hops[6].evidence = "line 1" | .hops[6].range = [1, 201] | .hops[6].invoked = [] | (.files[] | select(.path == "src/platform/email/email.service.ts") | .path) = "src/big.ts"' "hop h6: excerpt is 201 lines, the cap is 200"
   refused "call line outside the parent excerpt" '.hops[2].range = [6, 7]' "hop h4: call line 8 is outside the parent hop h2's range 6-7"
   refused "call site in the wrong file" '.hops[4].call = {file: "src/orders/orders.routes.ts", line: 7, evidence: "createOrder"}' "hop h4: call site is in src/orders/orders.routes.ts but the parent hop h2 is a frame in src/orders/controllers/orders.controller.ts"
-  refused "invoked outside the range" '.hops[0].range = [1, 7] | .hops[0].invoked = [9]' "hop h0: invoked line 9 is outside the range 1-7"
+  refused "invoked outside the range" '.hops[0].range = [1, 7] | .hops[0].invoked = [5, 7, 9]' "hop h0: invoked line 9 is outside the range 1-7"
   refused "file listed, cited by no hop" '.files += [{path: "src/x.ts", layer: "lib", role: ""}]' "trace: files entry src/x.ts is cited by no hop"
   refused "hop file not listed" 'del(.files[7])' "trace: hop file src/platform/notify/notify.ts is not listed in files"
   refused "dangling step" '.pseudocode[0].hops = ["h9"]' "trace: pseudocode step 1 points at unknown hop h9"
@@ -86,6 +86,19 @@ test_every_check_refuses_its_mutation() {
   refused "too many steps" '.pseudocode = [range(13) | {step: (. + 1), text: "s", hops: ["h0"]}]' "trace: pseudocode must have 1 to 12 steps, has 13"
   refused "too few questions" '.questions = .questions[:2]' "trace: questions must have 3 to 5 entries, has 2"
   refused "candidate typed from memory" '.hops[7].candidates[0].evidence = "order: pushToTeams"' "hop h7 candidate 1: evidence not found on src/platform/notify/handlers.ts:4"
+  refused "invoked without the frame line" '.hops[4].invoked = [9, 10, 13, 14, 15, 16]' "hop h4: invoked leaves out the frame line 8"
+  refused "call line missing from the parent's invoked" '.hops[2].invoked = [6, 7, 9, 10]' "hop h4: call line 8 is not in the parent hop h2's invoked lines"
+  refused "invoked blank line" '.hops[0].invoked = [5, 6, 7]' "hop h0: invoked line 6 is blank"
+  printf '// a note\nexport const x = 1\n' > "$WORK/repo/src/note.ts"
+  refused "invoked comment line" '.hops[7].file = "src/note.ts" | .hops[7].line = 2 | .hops[7].evidence = "export const x" | .hops[7].range = [1, 2] | .hops[7].invoked = [1, 2] | (.files[] | select(.path == "src/platform/notify/notify.ts") | .path) = "src/note.ts"' "hop h7: invoked line 1 is a comment"
+}
+
+test_a_trace_that_dims_nothing_passes_with_a_note() {
+  jq 'del(.hops[].invoked)' "$WORK/trace.json" > "$WORK/flat.json"
+  out=$(verify "$WORK/flat.json" "$WORK/flat-ex.json")
+  assert_contains "no invoked anywhere: still verified" "verified 8 hops across 8 files" "$out"
+  assert_contains "no invoked anywhere: the note" "note: no hop carries invoked, so the page dims nothing" "$out"
+  assert_missing "one hop with invoked: no note" "note: no hop carries invoked" "$(verify "$WORK/trace.json" "$WORK/noted-ex.json")"
 }
 
 test_dirty_files_are_reported() {
@@ -106,6 +119,7 @@ test_excerpt_lines_are_copied_from_disk
 test_the_default_output_lands_beside_the_trace
 test_bad_files_are_refused
 test_every_check_refuses_its_mutation
+test_a_trace_that_dims_nothing_passes_with_a_note
 test_dirty_files_are_reported
 test_an_unwritable_output_is_refused
 report

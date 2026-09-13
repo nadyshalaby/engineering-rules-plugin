@@ -57,7 +57,7 @@ another.
 3. **Through a route sub-command**: `/engineering-rules:quick`, `:full`, `:shape`,
    `:explore-feature`, `:audit`, `:triage`, `:skill`, `:design` or `:log`, followed by what that
    route needs. The sub-command loads this skill, picks its row outright, and the
-   classification in 4.1 does not run. A tenth, `/engineering-rules:helpers`, picks no
+   classification in 4.1 does not run. A tenth, `/engineering-rules:agents`, picks no
    route: agentless is the default helper mode, and this one switches helpers on for the task
    in flight and every task after it in this conversation, bare or with a request, until
    `off`. The whole contract is 4.4.
@@ -78,7 +78,7 @@ of somebody who already said what they want is ceremony, and 4.1 forbids reading
 shape as a request for more of it.
 
 **Agentless mode** (4.4, 1.8) is the default: every helper shape runs in this session for
-the whole task unless the user switched helpers on, by the `/engineering-rules:helpers`
+the whole task unless the user switched helpers on, by the `/engineering-rules:agents`
 sub-command, their own words in the message that starts the task, or the intake's helper
 question. It moves the reading here and removes nothing.
 
@@ -98,7 +98,7 @@ question. It moves the reading here and removes nothing.
 | **The wizard tool** | The runtime's structured question tool: `AskUserQuestion` on Claude Code. |
 | **The agent tool** | The runtime's subagent tool: `Agent` on Claude Code. Every shape runs on a type Claude Code ships itself, none on an agent of this plugin's: `subagent_type: "fork"` for a reader that needs the conversation (the scouts, the question batch), `"Explore"` for a wide read-only search, `"Plan"`, read-only by construction, for the spec reviewer of Phase 2.5, and `"general-purpose"` for the reviewer of the diff, the mechanic and a builder, each sent its shape's prompt from 5.5 pasted whole. No send names a `model`: every helper runs on this session's model. Section 1.8 is this skill's standing request for it. In agentless mode (4.4) nothing is sent to it, and every shape runs here. |
 | **Helper** | Any unit of work sent to the agent tool: a reader, a reviewer, a mechanic or a builder (5.5). Never an owner of a phase, a tick or a claim. |
-| **Agentless mode** | The default helper mode: every helper shape runs in this session for the whole task, nothing is sent to the agent tool, and every send 1.8 mandates is the same work done here, in the same order, unless the user switched helpers on by the `/engineering-rules:helpers` sub-command, in their own words in the message that starts the task, or through the intake (4.4). Recorded once, on the helper line (1.8). |
+| **Agentless mode** | The default helper mode: every helper shape runs in this session for the whole task, nothing is sent to the agent tool, and every send 1.8 mandates is the same work done here, in the same order, unless the user switched helpers on by the `/engineering-rules:agents` sub-command, in their own words in the message that starts the task, or through the intake (4.4). Recorded once, on the helper line (1.8). |
 | **The notification tool** | The runtime's push-notification tool: `PushNotification` on Claude Code. One line to the desktop and, with Remote Control, the phone. |
 | **The ledger substrate** | The runtime's todo tracker when it exposes one; otherwise the printed block. Named once at the first print. |
 | **Exit artifact** | The concrete thing that must exist before a ledger item may tick. One per phase, listed in section 5.1. |
@@ -255,7 +255,7 @@ _Adapted from Andrej Karpathy's observations on the recurring failure modes of l
 **At task start, in this order, before any code.**
 
 1. Classify the ask against Definitions: trivial, read-only or substantive. Say which in one line. A trivial ask ends here after the answer or the one-line edit.
-2. Pick the route from the table below. State it and the mode in one line: *"Full mode."* or *"Quick mode, because you asked for it."*, then *"Agentless."* with the cost line 4.4 names, or *"Helpers on, because you asked for it."* when the user switched them on.
+2. Pick the route from the table below. State it and the mode in one line: *"Full mode."* or *"Quick mode, because you asked for it."*, then *"Agentless."* with the cost line 4.4 names, or *"Agents on, because you asked for it."* when the user switched them on.
 3. Record the base commit: `git rev-parse HEAD`. Every touched-scope command in the task uses it.
 4. Open the ledger with the items section 5.1 lists for the mode. Name the substrate once, and on the same line record helper availability (1.8).
 5. Read the Phase 1 reference (6.1) from disk, then follow it. Every phase begins by reading its own reference file; nothing runs from memory.
@@ -312,7 +312,7 @@ on anyone repeating it, and no further invitation is coming. Where the runtime o
 agent tool, every shape below collapses into this session and the reading happens here;
 nothing is skipped because nobody could be sent. That same collapse is the default, agentless
 mode (4.4): helpers are sent only once the user switched them on, by the
-`/engineering-rules:helpers` sub-command, in their own words, or through the intake, and the
+`/engineering-rules:agents` sub-command, in their own words, or through the intake, and the
 default skips nothing either.
 
 **Record the verdict once, at task start, on the line that names the ledger substrate:**
@@ -384,7 +384,7 @@ Every substantive prompt takes exactly one route. Pick it from what the user ask
 - **When two routes fit, say so and pick one.** State which and why in one line, then go.
 - **A route that is not quick or full still obeys the always-on law**, including the wizard tool, claim integrity and git safety.
 - **A sub-command outranks the classifier, never the law** (4.4). It picks the row and skips the classification in 4.1; it does not waive a phase, a check or a gate. Quick mode named by `/engineering-rules:quick` is named by the user, which is the one way quick mode ever starts.
-- **`/engineering-rules:helpers` is not a route.** It switches helpers on (4.4), agentless being the default, for the task in flight and every task after it in this conversation, `off` switches back, and it combines with every row above.
+- **`/engineering-rules:agents` is not a route.** It switches helpers on (4.4), agentless being the default, for the task in flight and every task after it in this conversation, `off` switches back, and it combines with every row above.
 
 ## The map
 

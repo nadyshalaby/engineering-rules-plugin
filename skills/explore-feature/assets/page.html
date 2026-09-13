@@ -42,6 +42,12 @@
         <dt><kbd>1</kbd> to <kbd>8</kbd></dt><dd>Switch the flow tab</dd>
         <dt><kbd>Esc</kbd></dt><dd>Close this, clear the find box</dd>
       </dl>
+      <h3 class="overlay-sub">Reading the code</h3>
+      <dl class="legend">
+        <dt><span class="legend-swatch legend-entry">f()</span></dt><dd>The line this hop is entered at.</dd>
+        <dt><span class="legend-swatch legend-skipped">g()</span></dt><dd>In the file, but not run on this path: the request never reaches it. Each excerpt's header counts them.</dd>
+        <dt><span class="legend-swatch legend-comment">//</span></dt><dd>A comment, as the file has it.</dd>
+      </dl>
       <p class="overlay-hint">Every numbered badge is a link. Pick one in the code, the stack, the diagram or a step, and every other view follows it.</p>
       <button type="button" class="btn" id="help-close">Close</button>
     </div>

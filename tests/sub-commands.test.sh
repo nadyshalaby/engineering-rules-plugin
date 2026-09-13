@@ -1,7 +1,7 @@
 #!/bin/bash
 # Guard: the route table in SKILL.md and the sub-command skills beside it agree (4.4). Every
 # route row names a sub-command whose skill directory exists; every skill directory beside the
-# main one is a route row or the helpers switch; each sub-command has the shape 4.4 promises
+# main one is a route row or the agents switch; each sub-command has the shape 4.4 promises
 # (a name matching its directory, user-only invocation, a body that loads the main skill, no
 # argument list, and, on the switch, the off word); and every section a route row cites is a
 # file. Run: bash tests/sub-commands.test.sh
@@ -12,7 +12,7 @@
 ROOT=$(repo_root) || exit 1
 SKILLS="${SKILLS_DIR:-$ROOT/skills}"
 MAIN_SKILL=engineering-rules
-SWITCH=helpers
+SWITCH=agents
 REFS="$ROOT/skills/$MAIN_SKILL/references"
 LINE_CAP=500
 
@@ -42,7 +42,7 @@ shape_defects() {
   [ "$lines" -le "$LINE_CAP" ] || printf '%s: %s lines\n' "$1" "$lines"
 }
 
-# switch_defects <skills dir>: the helpers switch's departures from the shape 4.4 promises.
+# switch_defects <skills dir>: the agents switch's departures from the shape 4.4 promises.
 switch_defects() {
   file="$1/$SWITCH/SKILL.md"
   [ -f "$file" ] || { printf '%s: no skill directory\n' "$SWITCH"; return; }
@@ -98,7 +98,7 @@ test_every_cited_section_exists() {
 
 test_the_switch_has_the_shape() {
   defects=$(switch_defects "$SKILLS")
-  assert_contains "the helpers switch has the shape 4.4 promises" "<none>" "${defects:-<none>}"
+  assert_contains "the agents switch has the shape 4.4 promises" "<none>" "${defects:-<none>}"
 }
 
 # The checks have to be able to fail: a route with no directory, a directory with no route, a

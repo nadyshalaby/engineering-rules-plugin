@@ -23,8 +23,8 @@ In this order, before anything else:
    through the wizard tool as 4.4 says, and ask nothing else.
 3. **Say the route and the mode in one line** (1.7, step 2): *"Quick mode, because you asked for it."*, then
    *"Agentless."* with the cost line 4.4 names, agentless being the default, unless helpers
-   were switched on by `/engineering-rules:helpers` earlier in this conversation or named in
-   the request, then *"Helpers on, because you asked for it."*.
+   were switched on by `/engineering-rules:agents` earlier in this conversation or named in
+   the request, then *"Agents on, because you asked for it."*.
 4. **Run the task start** (1.7, from step 3): the base commit, the ledger with quick mode's
    six items (5.1), the helper line as 1.8 records it, then 6.1 read from disk.
 

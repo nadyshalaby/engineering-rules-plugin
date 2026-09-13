@@ -16,6 +16,7 @@ const Explore = (() => {
   const badgesAt = new Map();
   const invokedSets = new Map();
   const panels = new Map();
+  const SKIPPED_TITLE = 'In the file, not run on this path';
   // highlight(text, file, state): one line to { tokens, state }; plain text until a highlighter registers.
   let highlight = (text, file, state) => ({ tokens: [{ text, cls: null }], state: state || {} });
 
@@ -149,7 +150,7 @@ const Explore = (() => {
     const marks = badgesAt.get(hop.id + ':' + lineNo) || [];
     const classes = ['ln', invoked ? 'invoked' : 'dimmed', lineNo === hop.line ? 'entry-line' : ''].join(' ').trim();
     const runs = tokens.map((run) => (run.cls ? h('span', { class: run.cls, text: run.text }) : run.text));
-    return h('tr', { class: classes, 'data-line': lineNo },
+    return h('tr', { class: classes, 'data-line': lineNo, title: invoked ? null : SKIPPED_TITLE },
       h('td', { class: 'gutter', text: lineNo }),
       h('td', { class: 'marks' }, marks.map((kid) => badge(kid, 'callbadge'))),
       h('td', { class: 'src' }, h('pre', {}, runs)));
@@ -171,6 +172,18 @@ const Explore = (() => {
     return rows.length ? h('div', { class: 'pane-extras' }, rows) : null;
   }
 
+  // skippedChip(hop, excerpt): how many excerpt lines this path never runs, for the pane head;
+  // nothing when the hop dims nothing.
+  function skippedChip(hop, excerpt) {
+    const set = invokedSets.get(hop.id);
+    if (!set) return null;
+    let count = 0;
+    for (let n = excerpt.start; n <= excerpt.end; n += 1) if (!set.has(n)) count += 1;
+    if (!count) return null;
+    const text = count + (count === 1 ? ' line' : ' lines') + ' not on this path';
+    return h('span', { class: 'chip tone-plain pane-skipped', title: SKIPPED_TITLE + ': the grey band with the dotted rail', text });
+  }
+
   function paneFor(hop) {
     const excerpt = excerpts.get(hop.id);
     const meta = fileMeta(hop.file);
@@ -178,6 +191,7 @@ const Explore = (() => {
       h('span', { class: 'pane-path mono', text: hop.file }), layerChip(meta.layer),
       h('span', { class: 'pane-sym mono', text: hop.symbol }),
       hop.status === 'unresolved' ? h('span', { class: 'chip tone-warn', text: 'unresolved' }) : null,
+      skippedChip(hop, excerpt),
       h('span', { class: 'pane-lines mono', text: 'L' + excerpt.start + '-' + excerpt.end }));
     const why = h('p', { class: 'pane-why' }, h('strong', { text: hop.title + '. ' }), hop.why);
     let state = {};

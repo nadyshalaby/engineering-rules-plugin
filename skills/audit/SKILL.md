@@ -22,8 +22,8 @@ In this order, before anything else:
    it has looked.
 3. **Say the route and the mode in one line** (1.7, step 2): *"Codebase audit."*, then
    *"Agentless."* with the cost line 4.4 names, agentless being the default, unless helpers
-   were switched on by `/engineering-rules:helpers` earlier in this conversation or named in
-   the request, then *"Helpers on, because you asked for it."*.
+   were switched on by `/engineering-rules:agents` earlier in this conversation or named in
+   the request, then *"Agents on, because you asked for it."*.
 4. **Read 16.3 from disk and run it**; it reaches 16.4 to 16.8 as it goes. The always-on law
    binds throughout: the remediation phase proposes and confirms per finding through the
    wizard tool, and every fix taken is a task that starts under 1.7.

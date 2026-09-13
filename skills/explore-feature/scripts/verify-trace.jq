@@ -1,5 +1,6 @@
-# The structural checks of a trace, 16.10 checks 2, 3, 4, 9 and 10 plus the shape of every
-# range and citation: everything jq settles without opening a cited file. Prints one line per
+# The structural checks of a trace, 16.10 checks 2, 3, 4, 9 and 10, the shape of every range
+# and citation, and the two halves of check 8 that need no file (the frame line and every
+# child's call line are invoked): everything jq settles without opening a cited file. Prints one line per
 # problem, `trace: ...` or `hop <id>: ...`, and nothing when the shape is sound.
 # verify-trace.sh runs it with the caps as arguments and refuses the trace on any output.
 def entryKinds: ["http", "cli", "job", "ui", "event", "other"];
@@ -27,7 +28,14 @@ def hopProblems($earlier; $i; $h):
   (if $i > 0 and $h.from != null and ($h.from | IN($earlier[]) | not) then "hop \($h.id): from \($h.from) is not an earlier hop" else empty end),
   (if $i > 0 and (($h.call | type) != "object") then "hop \($h.id): call must be an object with file, line and evidence" else empty end),
   (if $i > 0 and (($h.call | type) == "object") then citationProblems("hop \($h.id) call site"; $h.call) else empty end),
+  (if ($h.invoked | type) == "array" and ($h.invoked | length) > 0 and ($h.line | IN($h.invoked[]) | not)
+   then "hop \($h.id): invoked leaves out the frame line \($h.line); the line a hop is entered at always runs" else empty end),
   rangeProblems($h);
+def callInvokedProblems($t; $h):
+  ($t.hops[] | select(.id == $h.from)) as $p
+  | if ($h.call | type) == "object" and ($p.invoked | type) == "array" and ($p.invoked | length) > 0
+       and $p.file == $h.call.file and ($h.call.line | IN($p.invoked[]) | not)
+    then "hop \($h.id): call line \($h.call.line) is not in the parent hop \($h.from)'s invoked lines; a call on this path runs" else empty end;
 def refProblems($ids):
   ((.pseudocode // [])[] | .step as $s | (.hops // [])[] | select(IN($ids[]) | not) | "trace: pseudocode step \($s) points at unknown hop \(.)"),
   ((.branches // [])[] | select(.at | IN($ids[]) | not) | "trace: branch \(.name) is at unknown hop \(.at)"),
@@ -53,6 +61,7 @@ def fileProblems:
     (if (.title // "") == "" then "trace: title is missing" elif (.title | length) > $maxTitle then "trace: title is over \($maxTitle) characters" else empty end),
     (if ($entryKind | IN(entryKinds[]) | not) then "trace: entry.kind \($entryKind) is not one of \(entryKinds | join(", "))" else empty end),
     (.hops | to_entries[] | .key as $i | hopProblems([$t.hops[:$i][].id]; $i; .value)),
+    (.hops | to_entries[] | select(.key > 0) | .value | callInvokedProblems($t; .)),
     (((.pseudocode // []) | length) as $steps | if $steps < 1 or $steps > $maxSteps then "trace: pseudocode must have 1 to \($maxSteps) steps, has \($steps)" else empty end),
     (((.questions // []) | length) as $q | if $q < $minQuestions or $q > $maxQuestions then "trace: questions must have \($minQuestions) to \($maxQuestions) entries, has \($q)" else empty end),
     (if (.unreached | type) != "array" then "trace: unreached must be an array, [] when nothing was left out" else empty end),

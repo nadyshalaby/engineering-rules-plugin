@@ -19,8 +19,8 @@ that lost its context is re-anchored on the law and the ledger before its next s
 the git safety law binds through the skill alone. Version 2.11.0 splits the route parameter
 into nine sub-commands, turns the bare invocation into a guided intake, and adds an agentless
 mode that keeps every helper shape in the main conversation; 2.12.0 makes that mode a
-sub-command of its own, and 2.13.0 makes it the default, with full mode, and renames the
-switch to `/engineering-rules:helpers`.
+sub-command of its own; 2.13.0 makes it the default, with full mode, and 2.13.1 renames the
+switch to `/engineering-rules:agents`.
 
 ## What loads when
 
@@ -28,7 +28,7 @@ switch to `/engineering-rules:helpers`.
 |---|---|---|
 | 1 | `name` + `description` | Always in context, about 100 words |
 | 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.8`), the route table, the group map | Loads when the skill triggers, about 400 lines |
-| 2 | `skills/<name>/SKILL.md`: the ten sub-commands, nine routes and the helpers switch, about 35 lines each | Only when the user types one; the model cannot invoke them, so they cost it nothing |
+| 2 | `skills/<name>/SKILL.md`: the ten sub-commands, nine routes and the agents switch, about 35 lines each | Only when the user types one; the model cannot invoke them, so they cost it nothing |
 | 3 | `references/**`: all 122 sections, one file each | Only when a phase names one |
 | hooks | `hooks/hooks.json`: eight events, three guard and anchor scripts plus the notifier | Live from install, no prompt cost; up to half a second per edit of a code file |
 
@@ -63,7 +63,7 @@ reader, the stage-end scouts, the fresh reviewer, a mechanic, a builder; `5.5`) 
 the `Agent` tool on the agent types Claude Code ships itself (`fork`, `Explore`, `Plan`,
 `general-purpose`); `5.5` carries the prompt each shape is sent, pasted whole on every send.
 Agentless mode (`4.4`) is the default: nothing is sent unless the user switched helpers on,
-by `/engineering-rules:helpers` or in their own words; the same work runs in the main
+by `/engineering-rules:agents` or in their own words; the same work runs in the main
 conversation, in the same order, and the ledger records that instead of a send.
 
 ## The sub-commands, the intake and agentless mode
@@ -92,9 +92,9 @@ and the flow starts only when all three are settled (`4.4`). The old picker aske
 options in one question, which the wizard tool cannot hold; the intake reaches them in two.
 
 **Agentless mode is the default**: every helper shape (`5.5`) runs in the main conversation.
-Helpers are switched on by the tenth sub-command, `/engineering-rules:helpers`: bare, it
+Helpers are switched on by the tenth sub-command, `/engineering-rules:agents`: bare, it
 holds for the task in flight and every task that starts in this conversation until
-`/engineering-rules:helpers off`; with a request after it, that request classifies as prose
+`/engineering-rules:agents off`; with a request after it, that request classifies as prose
 (full mode unless the words name another route) and starts with helpers. The same words in
 your own message, or the intake's helper question, switch them on too; the size of the task
 never does. Under the default every send the law mandates (`1.8`) is the same work done in
@@ -103,7 +103,7 @@ review, the five review checks, every count. The ledger records
 `Helpers: agentless, the default` once, each affected item carries
 `helper skipped: agentless, the default`, and the one-line cost is said at task start: the
 review loses its fresh eyes, and the reading lands in the session's context. Nothing else
-moves. `/engineering-rules:helpers off`, or saying so, switches back to the default: the
+moves. `/engineering-rules:agents off`, or saying so, switches back to the default: the
 session prints the agentless line and the cost again. Nothing at the tool
 boundary enforces the mode; the law text does.
 
@@ -250,8 +250,8 @@ engineering-rules-plugin/
 │   ├── ledger-position.sh               the ledger heading both the notifier and the status line read
 │   └── tests/                           fixture tests, one per script: bash hooks/tests/<name>.test.sh
 ├── skills/
-│   ├── quick/ full/ shape/ audit/ triage/ skill/ design/ log/ helpers/
-│   │                                    one SKILL.md each: the route sub-commands and the helpers switch, user-invocable only
+│   ├── quick/ full/ shape/ audit/ triage/ skill/ design/ log/ agents/
+│   │                                    one SKILL.md each: the route sub-commands and the agents switch, user-invocable only
 │   ├── explore-feature/
 │   │   ├── SKILL.md                     the explore-feature sub-command, user-invocable only
 │   │   ├── scripts/                     verify-trace.sh with verify-trace.jq, build-page.sh; tests/ with a sample-repo fixture
@@ -321,7 +321,7 @@ Eight checks run against the plugin itself, all on `tests/harness.sh`:
   `Bash` tool.
 - `bash tests/hook-caps.test.sh` is the size cap above.
 - `bash tests/sub-commands.test.sh` fails when a route row of `SKILL.md` has no
-  `skills/<route>/SKILL.md`, when a skill directory is neither a route row nor the helpers
+  `skills/<route>/SKILL.md`, when a skill directory is neither a route row nor the agents
   switch, when a sub-command's name, user-only invocation or law load is missing or it takes
   an argument list, when the switch lacks its `off` word, or when a section a route row cites
   has no file, and proves it can fail by planting each.

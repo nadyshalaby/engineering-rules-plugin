@@ -106,11 +106,45 @@ check_call() {
   [ "$pstart" -le "$CALL_LINE" ] && [ "$CALL_LINE" -le "$pend" ] || fail "hop $HOP_ID: call line $CALL_LINE is outside the parent hop $HOP_FROM's range $pstart-$pend"
 }
 
-# check_invoked: check 8, every invoked line is inside the loaded hop's range.
+# comment_marks <file>: how a line comment opens in the file's language, one per line; nothing
+# when the language is unknown, and then only a blank line is refused.
+comment_marks() {
+  case "$1" in
+    *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.java|*.kt|*.swift|*.go|*.rs|*.c|*.h|*.cpp|*.cs|*.scala|*.dart|*.php) printf '//\n/*\n*\n' ;;
+    *.py|*.rb|*.sh|*.bash|*.pl|*.yml|*.yaml|*.toml) printf '#\n' ;;
+    *.sql|*.lua) printf -- '--\n' ;;
+    *.css|*.scss) printf '/*\n*\n' ;;
+  esac
+}
+
+# dead_line <text> <marks>: prints "blank" or "a comment" when the line cannot run, nothing
+# when it can.
+dead_line() {
+  local stripped mark
+  stripped=${1#"${1%%[![:space:]]*}"}
+  [ -n "$stripped" ] || { printf 'blank'; return; }
+  while IFS= read -r mark; do
+    [ -n "$mark" ] || continue
+    case "$stripped" in "$mark"*) printf 'a comment'; return ;; esac
+  done <<EOM
+$2
+EOM
+}
+
+# check_invoked: check 8 on disk: every invoked line is inside the loaded hop's range and can
+# run, neither blank nor a comment. The frame line and every child's call line being invoked
+# is the half verify-trace.jq settles from the trace alone.
 check_invoked() {
   problems=$(jq -r --argjson i "$HOP_INDEX" --argjson a "$HOP_START" --argjson b "$HOP_END" \
     '.hops[$i] | .id as $id | (.invoked // [])[] | select((type != "number") or . < $a or . > $b) | "hop \($id): invoked line \(.) is outside the range \($a)-\($b)"' "$TRACE")
-  [ -z "$problems" ] || { printf '%s\n' "$problems" >&2; failures=$((failures + 1)); }
+  [ -z "$problems" ] || { printf '%s\n' "$problems" >&2; failures=$((failures + 1)); return; }
+  local marks what inv
+  marks=$(comment_marks "$HOP_FILE")
+  while IFS= read -r inv; do
+    [ -n "$inv" ] || continue
+    what=$(dead_line "$(sed -n "${inv}p" "$ROOT/$HOP_FILE")" "$marks")
+    [ -z "$what" ] || fail "hop $HOP_ID: invoked line $inv is $what; only a line that runs belongs in invoked"
+  done < <(hop_field '(.invoked // [])[]')
 }
 
 # check_candidates: every candidate of an unresolved hop is a real citation, checks 5 and 6 again.
@@ -184,6 +218,8 @@ main() {
   n=$(tq '.hops | length'); i=0
   while [ "$i" -lt "$n" ]; do check_hop "$i"; i=$((i + 1)); done
   [ "$failures" -eq 0 ] || exit 1
+  [ "$(tq '[.hops[] | select((.invoked // []) | length > 0)] | length')" -gt 0 ] \
+    || printf 'note: no hop carries invoked, so the page dims nothing; 16.11 section 3 says when to give it\n' >&2
   write_excerpts
 }
 

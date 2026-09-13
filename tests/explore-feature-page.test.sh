@@ -2,7 +2,8 @@
 # Guard: the explore-feature page template stays one self-contained, theme-aware page under
 # the law's caps. The five markers build-page.sh replaces are each there once, no host is
 # reached but the svg namespace, the scripts carry no console call, debugger, empty catch
-# or innerHTML write, the stylesheet has the three theme blocks and paints the body, and no
+# or innerHTML write, the stylesheet has the three theme blocks and paints the body, the skipped
+# lines are explained (legend, tooltip, count, band), and no
 # template file is over 500 lines. Run: bash tests/explore-feature-page.test.sh
 # ASSETS_DIR points the test at another copy of the template, for a watched failure.
 # shellcheck source-path=SCRIPTDIR
@@ -73,6 +74,13 @@ test_nothing_is_external
 test_no_debug_artifacts
 test_theme_blocks_and_body_ground
 test_files_under_the_cap
+test_the_skipped_lines_are_explained() {
+  assert_eq "the help overlay carries the legend" 1 "$(grep -c 'legend-skipped' "$ASSETS/page.html")"
+  assert_eq "each skipped line carries the tooltip" 1 "$(grep -c "SKIPPED_TITLE = 'In the file, not run on this path'" "$ASSETS/page.js")"
+  assert_eq "the pane head counts the skipped lines" 1 "$(grep -c "' not on this path'" "$ASSETS/page.js")"
+  assert_eq "skipped lines sit on a band with a rail" 1 "$(grep -c 'ln.dimmed .marks { border-left: 3px dotted' "$ASSETS/page.css")"
+}
+
 test_the_theme_switch_is_wired() {
   assert_contains "the theme button is in the page" 'id="theme"' "$(cat "$ASSETS/page.html")"
   assert_contains "the script sets data-theme on the root" "setAttribute('data-theme'" "$(cat "$ASSETS/page.js")"
@@ -82,5 +90,6 @@ test_the_theme_switch_is_wired() {
 
 test_scripts_parse
 test_planted_defects_are_named
+test_the_skipped_lines_are_explained
 test_the_theme_switch_is_wired
 report
