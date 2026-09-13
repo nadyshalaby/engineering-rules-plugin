@@ -122,8 +122,8 @@ command>`, or `--live <its start command>` followed by `--stop` after the user f
 request, runs the code under a load-time rewrite (a Bun preload, a Node `--import` hook,
 both from `skills/explore-feature/capture/`) that wraps every function inside a hop's
 excerpt and records the arguments in, the value out or the error thrown, the time, and
-which way each `if`, ternary and `switch` went. Secrets, emails, phone numbers and tokens
-are masked and every value is capped before a byte reaches disk; the runner aggregates the
+which way each `if`, ternary and `switch` went. Secrets, emails, phone numbers, tokens and the
+tickets inside URLs are masked and every value is capped before a byte reaches disk; the runner aggregates the
 events, scans them with the law scout's own secret block and verifies them against the
 trace before writing `capture.json`, and `build-page.sh --capture` runs both checks again
 before embedding it. The page then shows a Runtime tab, a block under each excerpt, a chip

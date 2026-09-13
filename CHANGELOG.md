@@ -9,8 +9,8 @@ One entry per version, newest first. The README says what the plugin is now; thi
   uses the explored repo's own `typescript` 5, or the one `EXPLORE_CAPTURE_TYPESCRIPT` names
   when the repo carries 7, which has no compiler API) that wraps every function inside a hop's excerpt
   and records the arguments in, the value out or the error thrown, the time, and which way
-  each `if`, ternary and `switch` went; secrets, emails, phone numbers and tokens are masked
-  and every value capped before a byte reaches disk. The runner aggregates the events
+  each `if`, ternary and `switch` went; secrets, emails, phone numbers, tokens and the tickets
+  inside URLs are masked and every value capped before a byte reaches disk. The runner aggregates the events
   (`capture-aggregate.jq`), scans them (`secret-scan.sh`, the `9.5` block, now the one place
   it runs for the builder too) and verifies them against the trace (`capture-verify.jq`)
   before writing `capture.json`, the contract in `16.10`; `build-page.sh --capture` runs both

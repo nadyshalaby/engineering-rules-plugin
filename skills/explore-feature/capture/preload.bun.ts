@@ -4,23 +4,13 @@
 // a Bun onLoad callback has to return an object. A missing variable, trace or compiler ends
 // the run with the reason, because a run without the capture is not the run that was asked for.
 import { plugin } from 'bun';
-import { readEnv, loadTrace, resolveTypescript, filterRegex, loaderFor } from './shared.mjs';
+import { prepare, failRun, filterRegex, loaderFor } from './shared.mjs';
 import { installSink } from './sink.mjs';
 import { rewrite } from './rewrite.mjs';
 
-function fail(reason: string): never {
-  process.stderr.write('explore capture: ' + reason + '\n');
-  process.exit(2);
-}
-
-const env = readEnv(process.env);
-if (!env.ok) fail(env.reason);
-const trace = loadTrace(env.tracePath);
-if (!trace.ok) fail(trace.reason);
-const compiler = resolveTypescript(trace.root);
-if (!compiler.ok) fail(compiler.reason);
-const { ts } = compiler;
-const { files } = trace;
+const run = prepare(process.env);
+if (!run.ok) failRun(run.reason);
+const { ts, files } = run;
 
 // `bun test` ends its process without firing exit or beforeExit, so under it the sink
 // flushes from a bun:test afterAll, which throws anywhere else. The runner cannot see
@@ -33,8 +23,8 @@ function underBunTest(setting: string | undefined, main: string): boolean {
   return TEST_FILE.test(main);
 }
 
-const sink = installSink({ outPath: env.outPath });
-if (underBunTest(env.bunTest, Bun.main)) {
+const sink = installSink({ outPath: run.outPath });
+if (underBunTest(run.bunTest, Bun.main)) {
   const { afterAll } = await import('bun:test');
   afterAll(() => sink.flush());
 }

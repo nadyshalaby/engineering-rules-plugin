@@ -113,6 +113,9 @@ stop_live() {
   DIR=$(cd "$1" 2>/dev/null && pwd) || refuse "not a directory: $1"
   [ -f "$DIR/capture.pid" ] || refuse "no capture.pid in $DIR; was --live run there?"
   pid=$(cat "$DIR/capture.pid")
+  # A pid that is not a number above 1 never came from --live, and kill -- -1 would reach every process.
+  case "$pid" in ''|*[!0-9]*) refuse "capture.pid in $DIR does not hold a pid: $pid" ;; esac
+  [ "$pid" -gt 1 ] || refuse "capture.pid in $DIR holds pid $pid, which no capture started"
   kill -TERM -- -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || refuse "pid $pid is not running; its output is in $DIR/capture.log"
   while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt "$((STOP_WAIT * 5))" ]; do
     sleep 0.2

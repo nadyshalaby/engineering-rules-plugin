@@ -3,20 +3,11 @@
 // gets the trace path as its data, since a compiler object cannot cross that boundary. The
 // trace and the compiler are checked here first, so a bad run fails before anything loads.
 import { register } from 'node:module';
-import { readEnv, loadTrace, resolveTypescript } from './shared.mjs';
+import { prepare, failRun } from './shared.mjs';
 import { installSink } from './sink.mjs';
 
-function fail(reason) {
-  process.stderr.write('explore capture: ' + reason + '\n');
-  process.exit(2);
-}
+const run = prepare(process.env);
+if (!run.ok) failRun(run.reason);
 
-const env = readEnv(process.env);
-if (!env.ok) fail(env.reason);
-const trace = loadTrace(env.tracePath);
-if (!trace.ok) fail(trace.reason);
-const compiler = resolveTypescript(trace.root);
-if (!compiler.ok) fail(compiler.reason);
-
-installSink({ outPath: env.outPath });
-register('./hooks.node.mjs', import.meta.url, { data: { tracePath: env.tracePath } });
+installSink({ outPath: run.outPath });
+register('./hooks.node.mjs', import.meta.url, { data: { tracePath: run.tracePath } });

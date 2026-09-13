@@ -78,7 +78,7 @@
         h('span', { class: 'rt-name mono', text: anchor.name }),
         h('span', { class: 'rt-line mono', text: 'L' + anchor.line }),
         h('span', { class: 'chip tone-plain', text: count + (count === 1 ? ' call' : ' calls') + (count ? ', ' + millis(total(anchor.calls)) : '') }),
-        thrown ? h('span', { class: 'chip tone-warn', text: thrown + ' threw' }) : null),
+        thrown ? h('span', { class: 'chip tone-bad', text: thrown + ' threw' }) : null),
       count ? callRows(anchor.calls) : h('p', { class: 'rt-note', text: 'Loaded, never called on this run.' }),
       anchor.branches.length ? h('div', { class: 'rt-branches' }, anchor.branches.map((branch) => h('span', {}, h('span', { class: 'rt-k', text: 'L' + branch.line + ' ' }), branchChip(branch)))) : null);
   }
@@ -93,7 +93,7 @@
       h('div', { class: 'rt-head' },
         h('span', { class: 'label-caps', text: 'Runtime, one ' + capture.run.mode + ' run' }),
         h('span', { class: 'chip tone-plain', text: calls.length + (calls.length === 1 ? ' call' : ' calls') }),
-        thrown ? h('span', { class: 'chip tone-warn', text: thrown + ' threw' }) : null),
+        thrown ? h('span', { class: 'chip tone-bad', text: thrown + ' threw' }) : null),
       list.map(anchorBlock));
   }
 
@@ -141,7 +141,7 @@
     const legend = document.querySelector('.legend');
     if (!legend) return;
     legend.append(
-      h('dt', {}, h('span', { class: 'linechip is-call', text: '3× 1.2 ms' })), h('dd', { text: 'This function ran 3 times on the captured run, 1.2 ms in all. Amber when a call threw.' }),
+      h('dt', {}, h('span', { class: 'linechip is-call', text: '3× 1.2 ms' })), h('dd', { text: 'This function ran 3 times on the captured run, 1.2 ms in all. Red when a call threw.' }),
       h('dt', {}, h('span', { class: 'linechip is-true', text: 'true' })), h('dd', { text: 'Which way this condition went on the captured run; both when it went both ways.' }));
   }
 

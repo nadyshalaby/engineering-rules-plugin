@@ -11,6 +11,10 @@ const RUNTIME = '__explore_rt';
 const ANCHORS = '__explore_anchors';
 const CTX = '__explore_c';
 const ERR = '__explore_e';
+// A rewritten file can load where no sink was installed (a process that dropped the
+// environment the runner set, a worker the app started with its own options); it then runs
+// unrecorded instead of throwing on a missing global, since the rewrite must never change
+// what the code does.
 const FALLBACK = 'const ' + RUNTIME + ' = globalThis.__explore || { register: (l) => l.map((_, i) => i), enter: () => null, exit: (c, v) => v, threw: () => {}, leave: () => {}, branch: (a, l, v) => v, switchOn: (a, l, v) => v }; ';
 const lineAt = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
 

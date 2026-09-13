@@ -121,6 +121,11 @@ test_live_mode_captures_a_request_and_stops() {
   assert_eq "stop: a stopped run has no exit code" "null" "$(field "$TD/capture.json" '.run.exit')"
   assert_eq "stop: the pid file is gone" "absent " "$(present "$TD/capture.pid")"
   assert_contains "stop twice: refused" "no capture.pid in $TD" "$(run "$BUN" --stop "$TD")"
+  printf 'abc\n' > "$TD/capture.pid"
+  assert_contains "stop with a pid file holding no pid: refused" "does not hold a pid" "$(run "$BUN" --stop "$TD")"
+  printf '1\n' > "$TD/capture.pid"
+  assert_contains "stop with pid 1: refused before any signal" "which no capture started" "$(run "$BUN" --stop "$TD")"
+  rm -f "$TD/capture.pid"
   assert_eq "live: the repo is untouched" "" "$(untouched "$BUN")"
 }
 

@@ -4,19 +4,17 @@
 // source of exactly the files the trace names.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { loadTrace, resolveTypescript } from './shared.mjs';
+import { loadRun } from './shared.mjs';
 import { rewrite } from './rewrite.mjs';
 
 let files = new Map();
 let ts = null;
 
 export function initialize(data) {
-  const trace = loadTrace(data.tracePath);
-  if (!trace.ok) throw new CaptureHookError(trace.reason);
-  const compiler = resolveTypescript(trace.root);
-  if (!compiler.ok) throw new CaptureHookError(compiler.reason);
-  files = trace.files;
-  ts = compiler.ts;
+  const run = loadRun(data.tracePath);
+  if (!run.ok) throw new CaptureHookError(run.reason);
+  files = run.files;
+  ts = run.ts;
 }
 
 class CaptureHookError extends Error {

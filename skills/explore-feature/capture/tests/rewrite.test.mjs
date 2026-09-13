@@ -1,9 +1,9 @@
-// rewrite.test.mjs: the rewriter over the sample fixture, the sink's masks and caps, then the
-// rewritten sample run under the sink with every event checked. rewrite.test.sh runs it and
-// hands it a directory holding node_modules/typescript as the first argument, since the
-// rewriter resolves the explored repo's own compiler; CAPTURE_DIR points the checks at another
-// copy of the capture modules, for a watched failure. One line per check, then the closing
-// "N passed, M failed" line the shell harness prints.
+// rewrite.test.mjs: the rewriter over the sample fixture, the sink's masks and caps, the sink
+// at its edges, then the rewritten sample run under the sink with every event checked.
+// rewrite.test.sh runs it and hands it a directory holding node_modules/typescript as the
+// first argument, since the rewriter resolves the explored repo's own compiler; CAPTURE_DIR
+// points the checks at another copy of the capture modules, for a watched failure. One line
+// per check, then the closing "N passed, M failed" line the shell harness prints.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
@@ -18,14 +18,15 @@ if (!root) {
 }
 const load = (name) => import(pathToFileURL(resolve(captureDir, name)).href);
 const { rewrite } = await load('rewrite.mjs');
-const { resolveTypescript, readEnv, filterRegex, ENV_TYPESCRIPT } = await load('shared.mjs');
-const { createSink, maskString, capped } = await load('sink.mjs');
+const { resolveTypescript, readEnv, prepare, filterRegex, ENV_TYPESCRIPT } = await load('shared.mjs');
+const { createSink, maskString, capped, CAPS } = await load('sink.mjs');
 
 let failures = 0;
 let count = 0;
 const check = (ok, what) => { count += 1; console.log((ok ? 'ok   ' : 'FAIL ') + what); if (!ok) failures += 1; };
 const lines = (text) => text.split('\n').length;
 const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const throwingTrap = () => new Proxy({}, { ownKeys() { throw new TypeError('trap'); } });
 
 const compiler = resolveTypescript(root);
 check(compiler.ok, 'typescript resolves from the root: ' + (compiler.ok ? compiler.ts.version : compiler.reason));
@@ -36,6 +37,9 @@ const transpile = (code, file) => ts.transpileModule(code, { fileName: file, rep
 function checkEnv() {
   check(readEnv({}).ok === false && readEnv({ EXPLORE_CAPTURE_TRACE: 't' }).ok === false, 'readEnv refuses a missing variable: ' + readEnv({}).reason);
   check(readEnv({ EXPLORE_CAPTURE_TRACE: 't', EXPLORE_CAPTURE_OUT: 'o' }).ok, 'readEnv accepts both variables');
+  check(prepare({}).ok === false && prepare({}).reason === readEnv({}).reason, 'prepare stops at the first missing variable');
+  const unread = prepare({ EXPLORE_CAPTURE_TRACE: resolve(root, 'nope.json'), EXPLORE_CAPTURE_OUT: 'o' });
+  check(unread.ok === false && unread.reason.includes('is not readable JSON'), 'prepare stops at a trace that does not read: ' + unread.reason);
 }
 
 // checkCompilerApi: a typescript that carries no compiler API (typescript 7 on npm exports
@@ -84,16 +88,60 @@ function checkMasks() {
   check(maskString('+20 10 1170 0133') === '<phone>' && maskString('(555) 123-4567') === '<phone>', 'a phone number is masked');
   check(maskString('2026-06-19') === '2026-06-19' && maskString('19-06-2026') === '19-06-2026', 'a hyphenated date is not a phone number');
   check(maskString('eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abc') === '<token>', 'a jwt is masked');
-  check(maskString('x'.repeat(300)).length === 201, 'a long string is cut to 200 and an ellipsis');
+  check(maskString('x'.repeat(300)).length === CAPS.string + 1, 'a long string is cut to the string cap and an ellipsis');
+  // Built here rather than written down, so no fixture holds a token-shaped literal.
+  const ticket = 't' + '7k'.repeat(16);
+  check(maskString('/api/auth/handoff/google?ticket=' + ticket + '&returnTo=/pos') === '/api/auth/handoff/google?ticket=<masked>&returnTo=/pos', 'a ticket in a query is masked and the rest of the query kept');
+  check(maskString('https://x.io/invite/' + ticket + '?lang=ar') === 'https://x.io/invite/<masked>?lang=ar', 'an opaque path segment is masked');
+  check(maskString('?password=' + ['hun', 'ter2'].join('')) === '?password=<masked>', 'a secret-shaped query key is masked whatever its value');
+  const plain = '/api/work-orders/9f1c2b3a-1234-4abc-8def-1234567890ab/send-estimate?page=2&email=a@b.co';
+  check(maskString(plain) === plain.replace('a@b.co', '<email>'), 'a uuid segment and a plain query survive, the email inside still masked');
+  check(maskString('/docs/2026-09-13-runtime-capture-review') === '/docs/2026-09-13-runtime-capture-review', 'a dated slug is not a token');
+}
+
+function checkCaps() {
   check(sameJson(capped({ password: 'p', nested: { apiKey: 'k', ok: 1 } }), { password: '<masked>', nested: { apiKey: '<masked>', ok: 1 } }), 'secret-shaped keys are masked at any depth');
   const ring = { a: 1 };
   ring.self = ring;
   check(sameJson(capped(ring), { a: 1, self: '<circular>' }), 'a cycle is marked');
-  check(capped(new Array(50).fill(0)).length === 21, 'an array is capped to 20 items and a marker');
+  check(capped(new Array(50).fill(0)).length === CAPS.items + 1, 'an array is capped to the item cap and a marker');
   const wide = Object.fromEntries(Array.from({ length: 30 }, (_, i) => ['k' + i, 'y'.repeat(150)]));
   const cappedWide = capped(wide);
-  check(typeof cappedWide === 'string' && cappedWide.length < 2200 && cappedWide.startsWith('<'), 'a value over the byte cap becomes a marker: ' + String(cappedWide).slice(0, 40));
+  check(typeof cappedWide === 'string' && cappedWide.length < CAPS.bytes + 100 && cappedWide.startsWith('<'), 'a value over the byte cap becomes a marker: ' + String(cappedWide).slice(0, 40));
   check(sameJson(capped(new TypeError('bad nady@x.io')), { error: 'TypeError', message: 'bad <email>' }), 'an error keeps its name and a masked message');
+  let reads = 0;
+  const leaf = {};
+  Object.defineProperty(leaf, 'v', { enumerable: true, get() { reads += 1; return 1; } });
+  const tree = (levels) => (levels === 0 ? leaf : Object.fromEntries(Array.from({ length: CAPS.keys }, (_, i) => ['k' + i, tree(levels - 1)])));
+  const started = performance.now();
+  const marker = capped(tree(3));
+  check(typeof marker === 'string' && reads <= CAPS.nodes, 'a wide, deep value stops at the node budget: ' + reads + ' leaf reads, ' + (performance.now() - started).toFixed(1) + ' ms');
+  check(capped(throwingTrap()) === '<unserialisable TypeError>', 'a value whose trap throws becomes a marker instead of a throw into the caller');
+}
+
+// checkSinkEdges: the guards no run of the sample reaches: the event cap, a write that
+// fails, and a promise settling to a value the sink cannot serialise.
+async function checkSinkEdges() {
+  const sink = createSink({ append: () => {} });
+  for (let i = 0; i < CAPS.events + 5; i += 1) sink.branch(0, 1, true);
+  const stats = sink.stats();
+  check(stats.truncated === true && stats.pending === CAPS.events + 1, 'the event cap stops recording and notes it once: ' + stats.pending + ' events buffered');
+  const errs = [];
+  const write = process.stderr.write;
+  process.stderr.write = (text) => { errs.push(String(text)); return true; };
+  const unwritable = createSink({ outPath: resolve(root, 'no-such-dir/capture.jsonl') });
+  unwritable.branch(0, 1, false);
+  const flushed = unwritable.flush();
+  process.stderr.write = write;
+  check(flushed === 1 && errs.length === 1 && errs[0].startsWith('explore capture: could not write'), 'a write that fails is reported on stderr and does not throw');
+  let rejected = null;
+  const onReject = (err) => { rejected = err; };
+  process.on('unhandledRejection', onReject);
+  const later = createSink({ append: () => {} });
+  later.exit(later.enter(0, []), Promise.resolve(throwingTrap()));
+  await new Promise((r) => setTimeout(r, 5));
+  process.off('unhandledRejection', onReject);
+  check(rejected === null && later.stats().seq === 2, 'a promise settling to such a value is recorded as a marker, with no unhandled rejection');
 }
 
 // checkValues: the rewritten module behaves exactly as the original would.
@@ -145,6 +193,10 @@ async function main() {
   const rewritten = checkRewrite(sampleFile, sample);
   console.log('== the masks');
   checkMasks();
+  console.log('== the caps');
+  checkCaps();
+  console.log('== the sink at its edges');
+  await checkSinkEdges();
   console.log('== the rewritten sample under the sink');
   const written = [];
   let tick = 0;

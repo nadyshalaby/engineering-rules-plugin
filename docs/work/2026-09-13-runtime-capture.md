@@ -1,7 +1,7 @@
 ---
 slug: 2026-09-13-runtime-capture
 title: Runtime capture for explore-feature, real values at every anchor
-status: reviewing
+status: finishing
 type: feature
 created: 2026-09-13
 project: engineering-rules-plugin
@@ -27,8 +27,8 @@ sprint_goal: |
 - [x] Phase 2.5. Spec review (report produced, doc patched)
 - [x] Phase 3. Implement (every task ticked with evidence, every stage committed, scouts run)
 - [x] Phase 4. Verify (Evidence Ledger complete, triad green, ship-gate rows present)
-- [>] Phase 5. Review (coverage ledger complete, decision table empty, fixes verified)
-- [ ] Phase 6a. Re-verify + land (Steps A, B, C)
+- [x] Phase 5. Review (coverage ledger complete, decision table empty, fixes verified)
+- [>] Phase 6a. Re-verify + land (Steps A, B, C)
 - [ ] Phase 6b. Cleanup sweep (Step D)
 - [ ] Phase 6c. Archive work-doc to `done/` (Step F)
 - [ ] Phase 6d. Law self-audit + update log (Step F)
@@ -942,6 +942,39 @@ cleanup commit.
 Commit: `fix(explore-feature): a hyphenated date is not a phone number, 2.14.0`, explicit
 paths, no attribution; hash in the Phase 4 entry.
 
+### 2026-09-13, Phase 5 fix pass: F1 to F13
+
+Thirteen rows, all `accept`, fixed in one pass over 14 paths. Watched reds, each new check
+against a mutant lacking its fix, through `CAPTURE_DIR` and `CAPTURE_RUN_SH` (the runner
+mutant in a sibling `scripts/` + `capture/` layout with only its two guard messages
+reworded, so no `kill` was ever reached): the Stage 7 sink and rewriter under the new shared
+module gave `FAIL a ticket in a query is masked and the rest of the query kept`, `FAIL an
+opaque path segment is masked`, `FAIL a secret-shaped query key is masked whatever its
+value`, `FAIL a uuid segment and a plain query survive, the email inside still masked`,
+`FAIL a wide, deep value stops at the node budget: 64000 leaf reads`, then `TypeError: trap`
+thrown out of the old `capped`, the F7 defect itself; the async exit bypassing `capped` gave
+`FAIL a promise settling to such a value is recorded as a marker, with no unhandled
+rejection`; `truncated` never set gave `FAIL the event cap stops recording and notes it
+once: 20005 events buffered`; the stderr line reworded gave `FAIL a write that fails is
+reported on stderr and does not throw`; `prepare` ignoring a missing variable gave `FAIL
+prepare stops at the first missing variable`; the guard messages reworded gave `FAIL stop
+with a pid file holding no pid: refused` and `FAIL stop with pid 1: refused before any
+signal` (`47 passed, 2 failed`). F13 surfaced from the F1 check: against the fixed sink the
+uuid-and-query string came back as `<email>`, because the email pattern's local part ran to
+the first whitespace; both parts now stop at a URL separator, and the check went green.
+
+Triad after the pass: `13 suites, 723 passed, 0 failed` (rewrite 58, capture-run 49, the
+other eleven as at Phase 4), `shellcheck exit 0`, `✔ Validation passed`. Caps re-measured
+over the eight edited JS and TS files: `0 over a cap` each (`callRecorders` 41 to 34 lines).
+Worst case re-measured on one 40-key, 4-level value, twice each: old sink `233.6 ms` and
+`217.4 ms`, new sink `5.0 ms` and `3.7 ms`. Scouts re-run over the 14 edited paths: the law
+rows are the prose, fixture and rethrow rows of Phase 5 start plus `rewrite.test.mjs:29`
+(the deliberately throwing trap in a test file), all dismissed; the perf rows name the same
+startup reads, the per-process unref'd timer, the per-trace maps and the sink's own
+serialisation, all dismissed as at 12.4. The decision table closes empty: 13 `accept`, 13
+fixed. The design counts (the red chips, the sizes) are re-taken in Phase 6a on the page
+rebuilt from a fresh capture, since the sink changes oblige a re-run.
+
 ## 7. Sprint Review
 
 ### Evidence Ledger (Phase 4, 2026-09-13)
@@ -1056,6 +1089,86 @@ for reduced motion by emulation (grep instead), 3 yes, 4 no `no` box, 5 yes (bel
   bundled or compiled project.
 - Reduced motion by emulation (proven by grep); Lighthouse numbers; the 375 render under
   the pane's scaling; Linux and Windows paths (macOS only, where `/var` is `/private/var`).
+
+### Phase 5 review (2026-09-13)
+
+Agentless, every shape run here. Scouts at Phase 5 start: 68 rows (perf, law, design) over
+the 33-path scope, all dispositioned; the nine law rows re-judged under 12.7 (prose naming
+the tokens, the tests' own pattern strings, fixtures whose throw is the thing under test, a
+CSS class name, and the rewriter's rethrow of the caught error) and dismissed. The five
+checks ran in order, each read from disk as it opened and closed before the next: 12.3
+security (F1, F2), 12.4 performance (F3), 12.5 design (F4), 12.6 coherence (F5, F6), 12.7
+quality, layering, plan and scope (F7 to F12). 12.8 challenged every row; 12.9 merged them.
+
+#### Decision table (12.9)
+
+| # | Severity | Finding | Location | Verdict | Decision | Evidence |
+|---|---|---|---|---|---|---|
+| F7 | Important | a value the sink cannot serialise throws out of `enter`/`exit` into the instrumented function, or becomes an unhandled rejection on the async exit | `capture/sink.mjs:84-89`, `:134-135` | UPHELD, two probes (`THREW TypeError trap`, `UNHANDLED TypeError`) | accept | sink: `capped` returns `<unserialisable Name>` on a throw; two tests |
+| F8 | Important | `callRecorders` is 41 lines, first line to last | `capture/sink.mjs:112` | UPHELD, measured | accept | sink: the promise branch extracted into `settleLater` |
+| F3 | Important | `serialise` visits every node under the depth cap before the byte cap cuts: 466 ms per call on a 40-key, 4-level object | `capture/sink.mjs:47-89` | UPHELD, measured | accept | sink: a node budget (`CAPS.nodes`); a test counting property reads; re-measured |
+| F1 | Important | a URL keeps its query values and opaque path segments, so a handoff ticket or an invite token reaches disk on a live capture | `capture/sink.mjs:18-23`, `:29` | UPHELD, reproduced (`?ticket=` and `/invite/<token>` survive; TOKEN needs mixed case) | accept | sink: secret-shaped and opaque query values and opaque path segments become `<masked>`, `ticket` joins the secret keys; tests; 16.10, README, CHANGELOG |
+| F2 | Important (escalated from Minor) | `--stop` signals whatever `capture.pid` holds; a file holding `1` makes `kill -TERM -- -1`, every process the user can signal | `scripts/capture-run.sh:116` | ESCALATED | accept | runner: refuse a pid that is not a number above 1; a test |
+| F4 | Minor | `.seq-ms` 9.5px is off the sequence diagram's 10px labels; `.rt-k` and `.linechip` 10.5px are off the sheet's 11px chips and labels | `assets/page.css:244`, `:223`, `:234` | NEEDS-RESTATEMENT, restated (the SVG scale is 10px at `:182`, `:188`, `:191`; the HTML scale 11px at `:72`, `:111`, `:187`) | accept | css: 10px, 11px, 11px |
+| F5 | Minor | the "N threw" chips are amber and the legend says amber, while every other throw mark is red | `assets/page-capture.js:81`, `:96`, `:144` against `assets/page.css:186`, `:226`, `:236` | UPHELD | accept | css: a `tone-bad` chip; the two chips and the legend use it |
+| F6 | Minor | the file tree lacks `capture.rejected.json`, and the prose counts four `capture.*` files where five are listed | `16.10:18-27` | UPHELD | accept | 16.10: the row and the count |
+| F9 | Minor | nine identical lines in the two loaders, the trace-then-compiler pair a third time in the hook | `capture/preload.bun.ts:11-21`, `capture/register.node.mjs:9-19`, `capture/hooks.node.mjs:14-17` | UPHELD, the lines printed | accept | shared: `loadRun`, `prepare`, `failRun`; the loaders and the hook call them; a test |
+| F10 | Minor | four exports nobody imports | `capture/shared.mjs:10`, `:11`, `:14`; `capture/sink.mjs:7` | UPHELD, grep found no reader (`initialize` dismissed: Node calls it by name) | accept | three `export`s dropped (and `loadTrace`'s once F9 lands); `CAPS` read by the test |
+| F11 | Minor | two non-obvious WHYs unwritten: the fallback runtime, the signal handler's listener rule | `capture/rewrite.mjs:14`; `capture/sink.mjs:192-197` | UPHELD | accept | two comments |
+| F12 | Minor | three gates with no regression test: the write-failure line, the 20 000-event truncation, the pid guard | `capture/sink.mjs:216-222`, `:94-97`; `scripts/capture-run.sh:116` | UPHELD | accept | tests in the rewrite and runner suites |
+| F13 | Minor | the email pattern's local part runs to the first whitespace, so a URL carrying an email in its query loses its whole path (`/api/work-orders/<uuid>/send-estimate?page=2&email=a@b.co` came back as `<email>`) | `capture/sink.mjs:11` | UPHELD, surfaced by the F1 check against the fixed sink; pre-existing since Stage 1 | accept | sink: both parts of the email pattern stop at a URL separator; the check that found it stays |
+
+#### Coverage ledger (12.2)
+
+| path | checks read it | verdict |
+|---|---|---|
+| `.claude-plugin/marketplace.json` | quality-and-plan | clean |
+| `.claude-plugin/plugin.json` | quality-and-plan | clean |
+| `CHANGELOG.md` | coherence, quality-and-plan | F1 (the masking sentence) |
+| `README.md` | coherence, quality-and-plan | F1 (the masking sentence) |
+| `skills/engineering-rules/references/16-other-routes/16.10-the-trace-data-schema.md` | security, coherence, quality-and-plan | F1, F6 |
+| `skills/engineering-rules/references/16-other-routes/16.11-the-trace-rubric.md` | coherence, quality-and-plan | clean |
+| `skills/engineering-rules/references/16-other-routes/16.9-exploring-one-feature.md` | coherence, quality-and-plan | clean |
+| `skills/explore-feature/SKILL.md` | coherence, quality-and-plan | clean |
+| `skills/explore-feature/assets/page-capture.js` | security, design, coherence, quality-and-plan | F5 |
+| `skills/explore-feature/assets/page-flow.js` | design, quality-and-plan | clean |
+| `skills/explore-feature/assets/page.css` | design, coherence, quality-and-plan | F4, F5 |
+| `skills/explore-feature/assets/page.html` | security, design, quality-and-plan | clean |
+| `skills/explore-feature/assets/page.js` | security, design, quality-and-plan | clean |
+| `skills/explore-feature/capture/hooks.node.mjs` | security, quality-and-plan | F9 |
+| `skills/explore-feature/capture/preload.bun.ts` | security, performance, quality-and-plan | F9 |
+| `skills/explore-feature/capture/register.node.mjs` | security, quality-and-plan | F9 |
+| `skills/explore-feature/capture/rewrite.mjs` | security, performance, quality-and-plan | F11 |
+| `skills/explore-feature/capture/shared.mjs` | security, quality-and-plan | F9, F10 |
+| `skills/explore-feature/capture/sink.mjs` | security, performance, coherence, quality-and-plan | F1, F3, F7, F8, F10, F11, F12 |
+| `skills/explore-feature/capture/tests/fixtures/sample.ts` | quality-and-plan | clean |
+| `skills/explore-feature/capture/tests/rewrite.test.mjs` | quality-and-plan | clean, gains the F1, F3, F7, F9, F12 tests |
+| `skills/explore-feature/capture/tests/rewrite.test.sh` | quality-and-plan | clean |
+| `skills/explore-feature/scripts/build-page.sh` | security, coherence, quality-and-plan | clean |
+| `skills/explore-feature/scripts/capture-aggregate.jq` | performance, coherence, quality-and-plan | clean |
+| `skills/explore-feature/scripts/capture-run.sh` | security, coherence, quality-and-plan | F2, F12 |
+| `skills/explore-feature/scripts/capture-verify.jq` | security, coherence, quality-and-plan | clean |
+| `skills/explore-feature/scripts/secret-scan.sh` | security, quality-and-plan | clean |
+| `skills/explore-feature/scripts/tests/build-page.test.sh` | quality-and-plan | clean |
+| `skills/explore-feature/scripts/tests/capture-run.test.sh` | quality-and-plan | clean, gains the F2 test |
+| `skills/explore-feature/scripts/tests/fixtures/capture-bun.fixture.sh` | quality-and-plan | clean |
+| `skills/explore-feature/scripts/tests/fixtures/capture-node.fixture.sh` | quality-and-plan | clean |
+| `tests/explore-feature-page.test.sh` | quality-and-plan | clean |
+| `tests/hook-caps.test.sh` | quality-and-plan | clean |
+
+#### What the review did not reach (12.7)
+
+1. No check opened the two manifests beyond their version lines; `page.html` was read by
+   the design check and the template suite only.
+2. Every zero rests on a planted instance found this session (the bans grep, the caps
+   measurer); the design counts rest on the Phase 4 browser run and are repeated after the
+   fixes.
+3. Asserted, then verified: the changelog's claim that the builder runs `secret-scan.sh`
+   (`build-page.sh:30`, `:121`); that Node calls `initialize` (the Node fixture records).
+4. Gates with no test: F12.
+5. Not re-measured until the fix pass ends: the 466 ms worst case, the 709 checks, and the
+   real capture against the published run (the sink changes oblige a Phase 6 re-run).
+6. No file escaped a lens: the caps run, the grep and the length count covered all 33.
 
 ## 8. Retrospective
 
