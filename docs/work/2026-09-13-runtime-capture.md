@@ -1170,6 +1170,23 @@ quality, layering, plan and scope (F7 to F12). 12.8 challenged every row; 12.9 m
    real capture against the published run (the sink changes oblige a Phase 6 re-run).
 6. No file escaped a lens: the caps run, the grep and the length count covered all 33.
 
+### Phase 6a, Step A re-verify (2026-09-13)
+
+Fresh clone of the branch at `32108dc` (scratchpad `phase6-clone`, clean before and after):
+`13 suites, 723 passed, 0 failed`, `shellcheck exit 0`, `✔ Validation passed`. The one
+blocking ship-gate leg (`ship.smoke`, the real capture) re-run under the fixed sink in
+`SyanatBackend` at `d0a1afd`, with `EXPLORE_CAPTURE_TYPESCRIPT` naming a scratch TypeScript
+5.9.3: `Ran 16 tests across 1 file`, `wrote <dir>/capture.json: 37 anchors, 185 calls, 6
+branches, 21 threw, exit 0`, 405 events, porcelain lines 0 before and 0 after. Shape for
+shape against the published run (anchors, calls, values, errors, async and void flags,
+branches, hop counts; timings and sequence numbers excluded): `same anchors, calls, values,
+throws and branches as the published run: yes`; `strings with @ in the new capture: 0` (a
+planted one counts 1). The page rebuilt from it: `243383 bytes, capture embedded`, two
+`tone-bad` chips, the blob embedded once; republished at
+https://claude.ai/code/artifact/487665d0-7460-4ca7-8b90-45bf40c4d621 (label "2.14.0
+capture, reviewed"). `ship.build` and `ship.boot` stay ⏭ as in Phase 4: nothing in this
+plugin builds or boots.
+
 ## 8. Retrospective
 
 (empty until Phase 6)
