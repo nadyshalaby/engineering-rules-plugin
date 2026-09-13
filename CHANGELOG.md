@@ -2,6 +2,23 @@
 
 One entry per version, newest first. The README says what the plugin is now; this file says how it got there.
 
+- **2.14.0**: the explore-feature page carries one real run. `capture-run.sh --test <the
+  project's own test command>`, or `--live <its start command>` and `--stop` once the user
+  has fired a request, runs the code under a load-time rewrite (a Bun preload and a Node
+  `--import` hook under `skills/explore-feature/capture/`, both over the same rewriter, which
+  uses the explored repo's own `typescript`) that wraps every function inside a hop's excerpt
+  and records the arguments in, the value out or the error thrown, the time, and which way
+  each `if`, ternary and `switch` went; secrets, emails, phone numbers and tokens are masked
+  and every value capped before a byte reaches disk. The runner aggregates the events
+  (`capture-aggregate.jq`), scans them (`secret-scan.sh`, the `9.5` block, now the one place
+  it runs for the builder too) and verifies them against the trace (`capture-verify.jq`)
+  before writing `capture.json`, the contract in `16.10`; `build-page.sh --capture` runs both
+  checks again and embeds it. The page gains a Runtime tab, a block under each excerpt, a
+  chip on every function and branch line, and timings on the sequence arrows, all labelled
+  as one run and absent without a capture. `16.9` step 6b runs it (the project's test by
+  default, a live request on the user's word) and the handoff gains `Captured:`; `16.11`
+  says a captured value is an observation, never the contract, and its gate gains a row.
+  Nothing is written into the explored repository.
 - **2.13.1**: the grey lines explain themselves, the verifier holds the line for weaker
   models, and the switch is `agents`. A dimmed excerpt line now sits on a grey band with a
   dotted rail and a tooltip, its excerpt header counts the lines not on this path, and the

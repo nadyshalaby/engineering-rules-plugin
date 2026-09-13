@@ -1,6 +1,6 @@
 ---
 name: explore-feature
-description: "Explore one feature under the engineering-rules law, picked by your word: one entry point traced to its leaves and published as a browsable page, every cited line verified against the working tree first. Usage: /engineering-rules:explore-feature <the entry point>"
+description: "Explore one feature under the engineering-rules law, picked by your word: one entry point traced to its leaves and published as a browsable page, every cited line verified against the working tree first, with what one real run did at every function on the page, masked, from the project's own test or a request you fire. Usage: /engineering-rules:explore-feature <the entry point>"
 argument-hint: "[the entry point]"
 disable-model-invocation: true
 ---
@@ -26,10 +26,11 @@ In this order, before anything else:
    were switched on by `/engineering-rules:agents` earlier in this conversation or named in
    the request, then *"Agents on, because you asked for it."*.
 4. **Read 16.9 from disk and run it**, with 16.10 and 16.11 as it names them. The page
-   template and the two scripts it runs live beside this file, under `assets/` and
-   `scripts/`. The always-on law binds throughout, the wizard tool for every question
-   included. The route edits nothing in the explored repository, so no ledger opens unless
-   the user turns a finding into a task, which then starts under 1.7.
+   template, the three scripts it runs and the capture's loaders live beside this file,
+   under `assets/`, `scripts/` and `capture/`. The always-on law binds throughout, the
+   wizard tool for every question included. The route edits nothing in the explored
+   repository, so no ledger opens unless the user turns a finding into a task, which then
+   starts under 1.7.
 
 Everything after that is the law, unchanged. A sub-command picks the row; it never waives a
 phase, a check or a gate.

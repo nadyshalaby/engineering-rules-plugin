@@ -7,7 +7,7 @@ created: 2026-09-13
 project: engineering-rules-plugin
 related: []
 base: 5c2c495
-current_task: T12
+current_task: T15
 worktree: null
 branch: null
 page_url: https://claude.ai/code/artifact/cb124491-1c35-4e68-839d-7bbf10312799
@@ -272,13 +272,13 @@ Stage 7, proof:        T18             (the real capture on SyanatBackend, the p
       → verify: a fixture capture renders N Runtime blocks and the chips in the browser
 - [x] T11. `page-flow.js`: ms labels on arrows of hops with calls — files: that one
       → verify: the diagram shows `12 ms` on an arrow in the browser
-- [ ] T12. 16.9: step 6b (both modes, the commands, the stop), the `Captured:` handoff line,
+- [x] T12. 16.9: step 6b (both modes, the commands, the stop), the `Captured:` handoff line,
       two anti-rationalisations — files: `references/16-other-routes/16.9-exploring-one-feature.md`
       → verify: the step names the runner, both flags and the handoff line
-- [ ] T13. 16.11: captured values are observations of one run, masked, never the contract —
+- [x] T13. 16.11: captured values are observations of one run, masked, never the contract —
       files: `references/16-other-routes/16.11-the-trace-rubric.md`
       → verify: the gate gains one row about the capture
-- [ ] T14. Sub-skill, README, CHANGELOG, manifests at 2.14.0 — files: `skills/explore-feature/SKILL.md`,
+- [x] T14. Sub-skill, README, CHANGELOG, manifests at 2.14.0 — files: `skills/explore-feature/SKILL.md`,
       `README.md`, `CHANGELOG.md`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`
       → verify: `grep -c 2.14.0` on each; `claude plugin validate --strict .`
 - [ ] T15. Tests for the rewriter — files: `skills/explore-feature/capture/tests/rewrite.test.sh`,
@@ -654,6 +654,74 @@ one on `api`. Dead code in touched files: 0 (the counts above), no cleanup commi
 
 Commit: `feat(explore-feature): the capture on the page`, explicit paths, no attribution;
 hash in the Stage 5 entry.
+
+### 2026-09-13, Stage 5 route: T12, T13, T14
+
+Stage 4 landed as `174dcc7`. Test mode: `none` for all three, reference and manifest text;
+the suites that read these files (sub-commands, catalog-ids, no-control-bytes) are the
+guard. Placement: no new file. The runner and the secret scan gain the executable bit the
+other two scripts already had (`100644` → `100755`), since the route's ready line tests
+`-x` on all three.
+
+Two things the plan named here that this stage leaves for Stage 6 on purpose, recorded so
+the review sees them: the README's test paragraph ("covers the two explore-feature
+scripts") and the CHANGELOG entry say nothing about the runner's tests, because those tests
+do not exist yet; both are completed when T15 to T17 land.
+
+Landed: 16.9 (contract item 8 and a refused row; the capture in the definitions and the
+ready line; step 6b with test mode, live mode, the rebuild, four refusals and the skip
+rule; `Captured:` in the handoff; the re-run note; two anti-rationalisations; a does-not
+bullet; the summary), 16.11 (gate row 13 with its third answer, the `Captured:` line in
+section 12, section 13 in four bullets), `skills/explore-feature/SKILL.md` (the description
+and step 4 name the capture and `capture/`), README (the 2.14.0 sentence in the intro, the
+section "Explore a feature, with one real run", the layout tree with `capture/`, the jq
+pair, `secret-scan.sh` and `page-capture.js`), CHANGELOG (the 2.14.0 entry), both
+manifests at 2.14.0 with the capture in their descriptions.
+
+Proven, pasted in the session:
+- T12: 16.9 names `capture-run.sh` 7 times, `--test` 1, `--live` 2, `--stop` 2,
+  `--capture` 3, `Captured:` 4, `Step 6b` 1, the override 1;
+- T13: 16.11 line 241 is row 13 (`yes / no / no capture`), line 258 is section 13;
+- T14: `2.14.0` in README 2, CHANGELOG 1, plugin.json 1, marketplace.json 1; the sub-skill
+  carries no version string, as no sub-command skill does (`grep -l "2\.1[0-9]\.[0-9]"
+  skills/*/SKILL.md` → none), its check is `capture/` named once; `claude plugin validate
+  --strict .` → Validation passed; the section count the README and plugin.json quote is
+  the count on disk (122);
+- the two scripts: `-rwxr-xr-x` on both, so the ready line's three `test -x` pass.
+Caps: 16.9 346 lines, 16.11 320, README 439, CHANGELOG 216, the sub-skill 36.
+
+Triad: shellcheck clean over the whole repo; `claude plugin validate --strict .` passed;
+11 suites, 11 pass (no-control-bytes 208 with the new text, sub-commands 11). Boot: the
+plugin loads no script at startup; nothing here runs at boot.
+
+#### Perf-scout (stage 5, 2026-09-13)
+
+Coverage: scope 9 | covered by a table 2 (the two shell scripts, mode change only) | no table: 16.9, 16.11, SKILL.md, README, CHANGELOG, plugin.json, marketplace.json (prose and manifests carry no loop or query) | unreadable: none (paths in 9, read 9)
+
+| Finding | Catalog ID | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|---|
+| none | | | | | |
+
+#### Law-scout (stage 5, 2026-09-13)
+
+Coverage: paths handed in 9 | paths readable 9
+
+| rule_id | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|
+| ban.suppression | README.md:157 | the guard's description names `@ts-expect-error` in prose | none: 2.13.1 prose naming the ban, shifted down by the insertion | false-positive |
+| ban.suppression, ban.empty-catch, ban.bare-error | CHANGELOG.md:157, :184, :185 | earlier entries name `shellcheck disable`, `.catch(() => {})` and `reject(new Error(` | none: history naming the bans | false-positive |
+
+Design scout: no UI file in scope.
+
+Sweep: 1 debug output 0; 2 commented-out code 0, `removed:` 0; 3 ownerless markers 0;
+4 dead code: a prose stage, no symbol added or removed, the mode change adds no code; 5
+unused variables n/a; 9 stale references: the grep for "two scripts", "five markers" and
+"verify-trace.sh and build-page.sh" finds one line, README's test paragraph, which is still
+true until Stage 6 adds the runner tests and is completed there. Reuse search: no symbol
+added, nothing to search. Dead code in touched files: 0 (prose), no cleanup commit.
+
+Commit: `docs(explore-feature): the route runs the capture, 2.14.0`, explicit paths, no
+attribution; hash in the Stage 6 entry.
 
 ## 7. Sprint Review
 

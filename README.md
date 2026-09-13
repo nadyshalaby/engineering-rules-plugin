@@ -20,7 +20,10 @@ the git safety law binds through the skill alone. Version 2.11.0 splits the rout
 into nine sub-commands, turns the bare invocation into a guided intake, and adds an agentless
 mode that keeps every helper shape in the main conversation; 2.12.0 makes that mode a
 sub-command of its own; 2.13.0 makes it the default, with full mode, and 2.13.1 renames the
-switch to `/engineering-rules:agents`.
+switch to `/engineering-rules:agents`. Version 2.14.0 lets the explore-feature page carry
+one real run of the traced code: the arguments, results, errors, timings and branch
+outcomes at every function inside the excerpts, masked before they reach disk, on Bun and
+Node, from the project's own test or a request the user fires.
 
 ## What loads when
 
@@ -106,6 +109,27 @@ review loses its fresh eyes, and the reading lands in the session's context. Not
 moves. `/engineering-rules:agents off`, or saying so, switches back to the default: the
 session prints the agentless line and the cost again. Nothing at the tool
 boundary enforces the mode; the law text does.
+
+## Explore a feature, with one real run
+
+`/engineering-rules:explore-feature <entry point>` walks one entry to its leaves and
+publishes a page: the call stack, diff-style excerpts with every cited line verified
+against the working tree by `verify-trace.sh`, and a flow rail (a sequence diagram, steps,
+branches, the failure path, shapes, decisions, a quiz), all keyed to one selected hop
+(`16.9`, the data contract in `16.10`, the code-only rubric in `16.11`). Since 2.14.0 the
+page can also carry what one real run did. `capture-run.sh --test <the project's test
+command>`, or `--live <its start command>` followed by `--stop` after the user fires a
+request, runs the code under a load-time rewrite (a Bun preload, a Node `--import` hook,
+both from `skills/explore-feature/capture/`) that wraps every function inside a hop's
+excerpt and records the arguments in, the value out or the error thrown, the time, and
+which way each `if`, ternary and `switch` went. Secrets, emails, phone numbers and tokens
+are masked and every value is capped before a byte reaches disk; the runner aggregates the
+events, scans them with the law scout's own secret block and verifies them against the
+trace before writing `capture.json`, and `build-page.sh --capture` runs both checks again
+before embedding it. The page then shows a Runtime tab, a block under each excerpt, a chip
+on every function and branch line, and timings on the sequence arrows, all labelled as one
+run: an observation, never the contract, and nothing from it is written into the trace or
+the explored repository.
 
 ## The law at the tool boundary
 
@@ -254,8 +278,11 @@ engineering-rules-plugin/
 │   │                                    one SKILL.md each: the route sub-commands and the agents switch, user-invocable only
 │   ├── explore-feature/
 │   │   ├── SKILL.md                     the explore-feature sub-command, user-invocable only
-│   │   ├── scripts/                     verify-trace.sh with verify-trace.jq, build-page.sh; tests/ with a sample-repo fixture
-│   │   └── assets/                      the page template: page.html, page.css, page.js, page-highlight.js, page-flow.js
+│   │   ├── scripts/                     verify-trace.sh with verify-trace.jq, build-page.sh, capture-run.sh with
+│   │   │                                capture-aggregate.jq and capture-verify.jq, secret-scan.sh; tests/ with a sample-repo fixture
+│   │   ├── capture/                     the load-time rewrite and its sink: shared.mjs, rewrite.mjs, sink.mjs,
+│   │   │                                preload.bun.ts, register.node.mjs, hooks.node.mjs
+│   │   └── assets/                      the page template: page.html, page.css, page.js, page-highlight.js, page-flow.js, page-capture.js
 │   └── engineering-rules/
 │       ├── SKILL.md                     the canonical always-on law, routes, map
 │       └── references/
