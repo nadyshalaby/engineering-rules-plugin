@@ -22,8 +22,19 @@ if (!compiler.ok) fail(compiler.reason);
 const { ts } = compiler;
 const { files } = trace;
 
+// `bun test` ends its process without firing exit or beforeExit, so under it the sink
+// flushes from a bun:test afterAll, which throws anywhere else. The runner cannot see
+// through a package script, so the test runner is recognised by its entry file, a test file
+// by the shapes SKILL.md Definitions name, and EXPLORE_CAPTURE_BUN_TEST=1 or =0 overrides.
+const TEST_FILE = /(^|\/)(tests?|__tests__|spec)\/|\.(test|spec)\.[cm]?[jt]sx?$|_(test|spec)\.[cm]?[jt]sx?$|(^|\/)test_[^/]*$/;
+function underBunTest(setting: string | undefined, main: string): boolean {
+  if (setting === '1') return true;
+  if (setting === '0') return false;
+  return TEST_FILE.test(main);
+}
+
 const sink = installSink({ outPath: env.outPath });
-if (env.bunTest) {
+if (underBunTest(env.bunTest, Bun.main)) {
   const { afterAll } = await import('bun:test');
   afterAll(() => sink.flush());
 }

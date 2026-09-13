@@ -19,7 +19,7 @@ const lineAt = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
 export function rewrite(options) {
   const { source, file, ranges, ts } = options;
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, scriptKind(ts, file));
-  const state = { ts, sf, ranges, anchors: [], edits: [] };
+  const state = { ts, sf, ranges, file, anchors: [], edits: [] };
   visit(state, sf, null);
   if (state.anchors.length === 0) return { code: source, anchors: [] };
   const header = FALLBACK + 'const ' + ANCHORS + ' = ' + RUNTIME + '.register(' + JSON.stringify(state.anchors) + '); ';
@@ -82,7 +82,7 @@ function anchorFunction(state, node) {
   const hop = hopFor(state.ranges, line);
   if (hop === null) return null;
   const index = state.anchors.length;
-  state.anchors.push({ hop, line, name: nameOf(ts, node, sf), kind: kindOf(ts, node) });
+  state.anchors.push({ hop, file: state.file, line, name: nameOf(ts, node, sf), kind: kindOf(ts, node) });
   const enter = 'const ' + CTX + ' = ' + RUNTIME + '.enter(' + ANCHORS + '[' + index + '], ' + argsExpression(ts, node, sf) + '); try { ';
   const close = ' } catch (' + ERR + ') { ' + RUNTIME + '.threw(' + CTX + ', ' + ERR + '); throw ' + ERR + ' } finally { ' + RUNTIME + '.leave(' + CTX + ') }';
   if (ts.isBlock(node.body)) {

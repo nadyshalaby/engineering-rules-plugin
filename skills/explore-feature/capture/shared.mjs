@@ -9,17 +9,18 @@ import { resolve, extname } from 'node:path';
 
 export const ENV_TRACE = 'EXPLORE_CAPTURE_TRACE';
 export const ENV_OUT = 'EXPLORE_CAPTURE_OUT';
-// Set to 1 by the runner when the command is `bun test`, whose runner ends the process
-// without firing exit or beforeExit; the preload then flushes from a bun:test afterAll.
+// 1 or 0 forces the Bun preload's answer to "is this `bun test`", which decides how the
+// sink's last flush happens; unset, the preload reads it off the entry file's name.
 export const ENV_BUN_TEST = 'EXPLORE_CAPTURE_BUN_TEST';
 
-// readEnv(env): the two paths the runner sets, or the reason one is missing.
+// readEnv(env): the two paths the runner sets, or the reason one is missing, and the
+// bun-test override as given.
 export function readEnv(env) {
   const tracePath = env[ENV_TRACE];
   const outPath = env[ENV_OUT];
   if (!tracePath) return { ok: false, reason: ENV_TRACE + ' is not set; capture-run.sh sets it' };
   if (!outPath) return { ok: false, reason: ENV_OUT + ' is not set; capture-run.sh sets it' };
-  return { ok: true, tracePath, outPath, bunTest: env[ENV_BUN_TEST] === '1' };
+  return { ok: true, tracePath, outPath, bunTest: env[ENV_BUN_TEST] };
 }
 
 // loadTrace(tracePath): the root and, per absolute file path, the hops whose excerpt is in

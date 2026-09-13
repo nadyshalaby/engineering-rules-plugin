@@ -7,7 +7,7 @@ created: 2026-09-13
 project: engineering-rules-plugin
 related: []
 base: 5c2c495
-current_task: T7
+current_task: T9
 worktree: null
 branch: null
 page_url: https://claude.ai/code/artifact/cb124491-1c35-4e68-839d-7bbf10312799
@@ -243,18 +243,20 @@ Stage 7, proof:        T18             (the real capture on SyanatBackend, the p
 - [x] T5. `capture/register.node.mjs` + `capture/hooks.node.mjs`: sink in the main thread,
       rewrite after `nextLoad` — files: the two named
       → verify: `node --import` over the spike prints the same records
-- [ ] T6a. `scripts/capture-run.sh`, test mode: usage, runtime detection, flag injection, env,
+- [x] T6a. `scripts/capture-run.sh`, test mode: usage, runtime detection, flag injection, env,
       run, then aggregate, verify, secret scan, `capture.json` — files:
-      `skills/explore-feature/scripts/capture-run.sh`
+      `skills/explore-feature/scripts/capture-run.sh` and
+      `scripts/secret-scan.sh`, the one place the 9.5 secret block is run over files, which
+      `build-page.sh` now calls too (added at Stage 3, the review sees it)
       → verify: usage on no args; the fixture run writes capture.json and prints one line
-- [ ] T6b. `scripts/capture-run.sh`, live mode: `--live` backgrounds the command with its pid
+- [x] T6b. `scripts/capture-run.sh`, live mode: `--live` backgrounds the command with its pid
       and output under the folder, `--stop` signals it, waits for the flush and runs the same
       aggregate, verify and scan — files: the same
       → verify: the fixture app answers a curl while instrumented, `--stop` yields capture.json
-- [ ] T7. `scripts/capture-aggregate.jq` (events to calls and branches per anchor) and
+- [x] T7. `scripts/capture-aggregate.jq` (events to calls and branches per anchor) and
       `scripts/capture-verify.jq` (anchors resolve to trace hops and ranges) — files: the two
       → verify: `jq -f` over a hand-written JSONL yields two calls and one branch
-- [ ] T8. 16.10: the `capture.json` contract, `branches[].line`, and where the file lives —
+- [x] T8. 16.10: the `capture.json` contract, `branches[].line`, and where the file lives —
       files: `references/16-other-routes/16.10-the-trace-data-schema.md`
       → verify: the section names every field the aggregate emits, cross-checked by grep
 - [ ] T9. `page.js` seams (`registerPaneExtra`, `registerLineMark`, `capture` lookup),
@@ -447,6 +449,103 @@ additions the proof forced, both inside T4 and T1's files.
 
 Commit: `feat(explore-feature): the Bun preload and the Node loader`, explicit paths, no
 attribution; hash in the Stage 3 entry.
+
+### 2026-09-13, Stage 3 runner: T7, T8, T6a, T6b
+
+Stage 2 landed as `2456206`. Test mode: T7 and T6a/T6b `test-authoring` (T16 covers the
+runner on both fixtures, T17 the jq pair through the builder); T8 `none`, a reference file.
+Placement: scripts flat in `scripts/` beside `verify-trace.sh` and `build-page.sh`, as the
+skill already does; the jq pair beside `verify-trace.jq`.
+
+A change the plan did not name, recorded here for the review: `scripts/secret-scan.sh`
+(35 lines) now holds the one way the law scout's secret block (9.5) is run over files, and
+`build-page.sh` calls it instead of carrying `extract_block` and the block run itself, so
+the runner's scan and the builder's scan are the same 3+ lines once (1.1, DRY); T6a's file
+list in the backlog names it. The refactor kept every message the build-page suite asserts:
+39 passed, 0 failed after it.
+
+Landed: `scripts/capture-aggregate.jq` (49 lines), `scripts/capture-verify.jq` (32),
+`scripts/capture-run.sh` (189, 14 functions, none over 40 lines), `scripts/secret-scan.sh`,
+`build-page.sh` (127, the scan through the shared script), 16.10 (+84 lines: the folder
+tree, `branches[].line`, the `capture.json` contract, masking, the run's environment, the
+five checks in order, the page's assumptions); `capture/rewrite.mjs` records `file` on every
+anchor, `capture/shared.mjs` and `capture/preload.bun.ts` carry the bun-test decision.
+
+Three things the proof changed in the design, all inside the plan's files:
+- the loaders reach the command through the environment, `BUN_OPTIONS=--preload=…` and
+  `NODE_OPTIONS=--import …`, not by editing argv: the spike showed `bun --preload x test` is
+  read as a script named test, `bun --preload x run main.ts` prints help, and a package
+  script's child never sees an argv flag, while both option variables reach every child
+  (`bun run t` → `bun test`, `bun run nmain` → `node`);
+- `bun test` cannot be told from a package script's argv, so the preload recognises the
+  test runner by its entry file being a test file (the Definitions' shapes), with
+  `EXPLORE_CAPTURE_BUN_TEST=1|0` as the override; the first cut keyed on the word `test` in
+  the command and `bun run t` recorded nothing;
+- the runner's meta file carries the trace path, since `--stop` runs in another process.
+
+Proven, pasted in the session (`$S/stage3/prove-runner.sh` over the spike project):
+- T7: the aggregate over the Stage 2 events → 2 anchors, 2 calls, 1 branch, `hops` and
+  `run` rows; `capture-verify.jq` → 0 lines on it and one named line for each of 11
+  mutations (a hop the trace lacks, a line and a branch line outside the range, a wrong
+  file, a branch kind, a call with no outcome, no arguments, no duration, version 2, mode
+  `dry`, no call at all); `secret-scan.sh` → exit 0 on the aggregate, exit 1 naming line 30
+  with the value redacted on a planted AWS key, exit 2 on a missing block, no args, an
+  unreadable file;
+- T8: every field the aggregate emits is named in 16.10, checked by a grep over 29 names:
+  `fields not named: 0`;
+- T6a: no args, one arg, `--dry`, bare `--stop` → usage, exit 2; a missing trace → exit 1;
+  `--test bun main.ts` and `--test node main.ts` → the program's output unchanged, `wrote
+  …/capture.json: 2 anchors, 2 calls, 1 branches, 0 threw, exit 0`, identical records;
+  `--test bun test lib.test.ts` and `--test bun run t` → 1 pass, 1 call, `branch 2:false`;
+  a command that reaches no anchor → `no event was recorded…`, exit 1; a raw AWS-shaped
+  argument the masks do not cover → `the aggregate carried a hardcoded secret at its line
+  25 … deleted`, exit 1, and neither capture.json nor capture.jsonl is left;
+- T6b: `--live bun server.ts` → `started pid N in the background…`, two curls answered
+  (`hi nady x3`, `hi x@y.io`), `--stop` → `wrote …: 2 anchors, 2 calls, 1 branches, 0
+  threw, stopped`, the email masked in both the arguments and the value, `outcomes:
+  [true, false]`, the pid file gone, a second `--stop` refused;
+- the override: `=0` under `bun test` → nothing recorded, as designed; `=1` under a plain
+  run → `Cannot use afterAll() outside of the test runner`, a loud failure.
+Stage 1 prover after the `rewrite.mjs` and `shared.mjs` changes: `ALL OK` on Bun and Node.
+
+Triad: shellcheck clean over the whole repo (the 2.13.1 command); `claude plugin validate
+--strict .` → Validation passed; 11 suites, 11 pass (no-control-bytes 203 with the new
+files). Boot: the plugin loads no script at startup.
+
+#### Perf-scout (stage 3, 2026-09-13)
+
+Coverage: scope 8 | covered by a table 5 | no table: capture-aggregate.jq, capture-verify.jq, 16.10 (jq and markdown carry no loop or query) | unreadable: none (paths in 8, read 8)
+
+| Finding | Catalog ID | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|---|
+| grep per marker | perf.process.spawn-per-item | scripts/build-page.sh:48 | `n=$(grep -c "<!--$marker-->" …)` inside `for marker in TITLE CSS JS TRACE EXCERPTS` | none: bounded driver, five literal markers, 2.13.1 code | false-positive: bounded driver, 1 candidate at build-page.sh:48 |
+| sync trace read, exists per hop, file map, regex in a window | perf.async.sync-blocking, perf.memory.unbounded-cache, perf.algorithmic.regex-in-loop | capture/shared.mjs:31, :42, :38, :79 | as at Stage 2 | none: once at install, bounded by the trace | false-positive |
+
+#### Law-scout (stage 3, 2026-09-13)
+
+Coverage: paths handed in 8 | paths readable 8
+
+| rule_id | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|
+| none | | | | |
+
+Design scout: no UI file in scope. The plugin's own edit guard refused two writes on the way
+(`SECRET_SCAN="…/secret-scan.sh"` read as an assigned secret, and a literal AWS-shaped key in
+a spike file); the variable is `SCAN_SH` and the spike assembles its planted key at runtime,
+the way `build-page.test.sh` does.
+
+Sweep: 1 debug output 0; 2 commented-out code 0, `removed:` 0; 3 ownerless markers 0 (the
+one grep hit is mktemp's `XXXXXX` template); 4 dead code: `has_test_word` was added and
+removed within the stage, `extract_block` left `build-page.sh` with its only caller,
+`EXCERPT_IDS` is read by the scan, every runner function is called from `main` or `finish`;
+5 unused imports and variables 0 (shellcheck style clean); 9 stale references 0 (16.10 names
+the files that exist; 16.9 and the SKILL are T12 and T14). Reuse search, pasted:
+`grep -rn "capture.meta\|runtime_label\|write_meta\|stop_live\|secret-scan" --include=*.sh --include=*.md --include=*.jq .`
+outside the stage's files → no match. Dead code in touched files: 0 (`build-page.sh` read in
+full, every function called), no cleanup commit.
+
+Commit: `feat(explore-feature): the capture runner, the aggregate and the contract`,
+explicit paths, no attribution; hash in the Stage 4 entry.
 
 ## 7. Sprint Review
 

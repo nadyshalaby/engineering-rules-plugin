@@ -11,18 +11,22 @@
 #   <!--EXCERPTS-->  excerpts.json
 # Usage: build-page.sh <trace.json> <excerpts.json> <out.html> [<assets dir>]
 # Needs jq and sed on PATH. Refuses an excerpts file that does not cover every hop, and one
-# whose excerpt lines carry a hardcoded secret, judged by the law scout's own patterns (9.5).
+# whose excerpt lines carry a hardcoded secret, judged by the law scout's own patterns (9.5)
+# through secret-scan.sh beside this script.
 set -u
 
 here=${BASH_SOURCE[0]%/*}
 [ "$here" = "${BASH_SOURCE[0]}" ] && here=.
+here=$(cd "$here" && pwd)
 TRACE=${1:-}
 EXCERPTS=${2:-}
 OUT=${3:-}
 ASSETS=${4:-"$here/../assets"}
+SCAN_SH="$here/secret-scan.sh"
 # The secret scan runs the law scout's own block over the excerpt lines; LAW_SCOUT_MD points
 # it at another copy of 9.5, for a test.
 LAW_SCOUT=${LAW_SCOUT_MD:-"$here/../../engineering-rules/references/09-phase-3-implement/9.5-the-law-scout.md"}
+EXCERPT_IDS=()
 
 usage() { printf 'usage: build-page.sh <trace.json> <excerpts.json> <out.html> [<assets dir>]\n' >&2; exit 2; }
 refuse() { printf 'build-page: %s\n' "$1" >&2; exit 1; }
@@ -52,20 +56,13 @@ html_escape() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/
 # json_for_html <file>: compact JSON with every < escaped, safe inside a script element.
 json_for_html() { jq -c . "$1" | sed 's#<#\\u003c#g'; }
 
-# extract_block: the law scout's bash block (9.5) without the git line that builds a touched
-# scope; the secret patterns have one source, and this script holds none of them.
-extract_block() {
-  awk '/^### HOW/ { h = 1 } h && /^```bash$/ { f = 1; next } f && /^```$/ { exit } f' "$LAW_SCOUT" | grep -v '^git diff -z'
-}
-
-# write_excerpt_files <dir>: one file per hop holding its excerpt lines byte for byte, plus
-# the NUL-separated path list the block reads.
+# write_excerpt_files <dir>: one file per hop holding its excerpt lines byte for byte, named
+# by the hop id, which EXCERPT_IDS collects for the scan.
 write_excerpt_files() {
-  : > "$1/paths"
   for id in $(jq -r '.excerpts[].id' "$EXCERPTS"); do
     case "$id" in *[!A-Za-z0-9_-]*) refuse "excerpt id is not a plain token: $id" ;; esac
     jq -r --arg id "$id" '.excerpts[] | select(.id == $id) | .lines[]' "$EXCERPTS" > "$1/$id"
-    printf '%s\0' "$id" >> "$1/paths"
+    EXCERPT_IDS+=("$id")
   done
 }
 
@@ -82,19 +79,21 @@ describe_hit() {
 }
 
 # scan_excerpts: refuses the build when an excerpt line carries a hardcoded secret, since the
-# page is published. The rows arrive redacted from the block; a scan that cannot run refuses
-# too, because a page built past a scan that never ran was not scanned.
+# page is published. The rows arrive redacted from secret-scan.sh, which is run inside the
+# excerpt folder so a row names the hop; a scan that cannot run refuses too, because a page
+# built past a scan that never ran was not scanned.
 scan_excerpts() {
   [ -f "$LAW_SCOUT" ] || refuse "law scout block not found at $LAW_SCOUT; set LAW_SCOUT_MD"
+  [ -f "$SCAN_SH" ] || refuse "secret-scan.sh is missing beside this script"
+  LAW_SCOUT=$(cd "$(dirname "$LAW_SCOUT")" && pwd)/$(basename "$LAW_SCOUT")
   dir=$(mktemp -d "${TMPDIR:-/tmp}/build-page-scan.XXXXXX")
   trap 'rm -rf "$dir"' EXIT
-  extract_block > "$dir/block.sh"
   write_excerpt_files "$dir"
-  (cd "$dir" && SCOUT_PATHS="$dir/paths" bash "$dir/block.sh" > "$dir/out" 2> "$dir/err")
-  err=$(head -n 1 "$dir/err")
-  hits=$(grep -c '^sec\.hardcoded-secret ' "$dir/out")
-  first=$(grep '^sec\.hardcoded-secret ' "$dir/out" | head -n 1)
-  [ -z "$err" ] || refuse "the secret scan did not run: $err"
+  rows=$( (cd "$dir" && bash "$SCAN_SH" "$LAW_SCOUT" "${EXCERPT_IDS[@]}") 2> "$dir/err")
+  status=$?
+  [ "$status" -ne 2 ] || refuse "the secret scan did not run: $(head -n 1 "$dir/err")"
+  hits=$(printf '%s\n' "$rows" | grep -c '^sec\.hardcoded-secret ')
+  first=$(printf '%s\n' "$rows" | grep '^sec\.hardcoded-secret ' | head -n 1)
   [ "$hits" -eq 0 ] || refuse "$(describe_hit "$first" "$hits")"
   rm -rf "$dir"
 }
