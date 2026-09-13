@@ -1,13 +1,15 @@
 ---
 slug: 2026-09-13-runtime-capture
 title: Runtime capture for explore-feature, real values at every anchor
-status: finishing
+status: done
+shipped: 2026-09-13
+shipped_via: merge
 type: feature
 created: 2026-09-13
 project: engineering-rules-plugin
 related: []
 base: 5c2c495
-current_task: T18
+current_task: null
 worktree: null
 branch: null
 page_url: https://claude.ai/code/artifact/cb124491-1c35-4e68-839d-7bbf10312799
@@ -28,10 +30,10 @@ sprint_goal: |
 - [x] Phase 3. Implement (every task ticked with evidence, every stage committed, scouts run)
 - [x] Phase 4. Verify (Evidence Ledger complete, triad green, ship-gate rows present)
 - [x] Phase 5. Review (coverage ledger complete, decision table empty, fixes verified)
-- [>] Phase 6a. Re-verify + land (Steps A, B, C)
-- [ ] Phase 6b. Cleanup sweep (Step D)
-- [ ] Phase 6c. Archive work-doc to `done/` (Step F)
-- [ ] Phase 6d. Law self-audit + update log (Step F)
+- [x] Phase 6a. Re-verify + land (Steps A, B, C)
+- [x] Phase 6b. Cleanup sweep (Step D)
+- [x] Phase 6c. Archive work-doc to `done/` (Step F)
+- [x] Phase 6d. Law self-audit + update log (Step F)
 
 ## 1. Original ask
 
@@ -975,6 +977,22 @@ serialisation, all dismissed as at 12.4. The decision table closes empty: 13 `ac
 fixed. The design counts (the red chips, the sizes) are re-taken in Phase 6a on the page
 rebuilt from a fresh capture, since the sink changes oblige a re-run.
 
+### 2026-09-13, Phase 6: re-verify, land, sweep, close
+
+Step A is in the Sprint Review (fresh clone 723/0, the real capture re-run and matched, the
+page republished). Step B: the four options through the wizard; the user chose "Merge into
+main on this machine". Step C: the re-verify record committed on the branch (`baaabc1`, 0
+trailer lines), `main` pulled `--ff-only` (at `5c2c495`), fast-forwarded to `baaabc1` (10
+commits over the base), porcelain 0, the suites on `main`: `13 suites, 723 passed, 0
+failed`, `shellcheck exit 0`, `✔ Validation passed`, pushed (`origin/main` at `baaabc1`).
+The install refreshed on the user's word ("then publish"): `Plugin "engineering-rules"
+updated from 2.13.1 to 2.14.0 for scope user. Restart to apply changes.`; the cached 2.14.0
+carries the reviewed sink (`nodes: 1000` found once); the repo has no tag convention (0
+tags), so none was added. Step D: the thirteen classes in the Retrospective. Step E: no
+entry-point file in the touched scope (no controller, route, CLI, bin, job, worker or
+handler path), so no explore offer and no conditional row. Step F: the Retrospective, the
+self-audit and the update log below, the closing edit, then the move to `done/`.
+
 ## 7. Sprint Review
 
 ### Evidence Ledger (Phase 4, 2026-09-13)
@@ -1189,7 +1207,41 @@ plugin builds or boots.
 
 ## 8. Retrospective
 
-(empty until Phase 6)
+- Surprise: the review found more in the sink than in the rest of the change put together
+  (seven of thirteen rows). A value with a throwing trap escaped into the observed code, a
+  wide value cost 233 ms a call, and a URL kept its ticket. The rewriter was right; the
+  value layer was where the edges lived.
+- Learned: `kill -TERM -- -"$pid"` on a pid read from a file is a loaded gun; a file holding
+  `1` signals every process the user owns. Validate what a file says before signalling it,
+  and never run the unguarded copy to watch a red; a copy that keeps the guard and changes
+  only its message reds just as honestly.
+- Learned: the email pattern had been swallowing the whole URL around an email since Stage
+  1, and only a check written for a different finding caught it. The check that must pass
+  against the fixed code is the check that finds the neighbour.
+- Pattern to reuse: a node budget beside a byte cap. The byte cap bounds output, the node
+  budget bounds work; without the second, the first is reached only after the whole walk.
+- Pattern to reuse: `CAPTURE_DIR`, `CAPTURE_RUN_SH` and `BUILD_PAGE_SH` point every suite at
+  a mutant copy without touching the tree; the runner copy needs `scripts/` and `capture/`
+  as siblings, since the script resolves the capture modules beside itself.
+- Follow-up (owner: Nady): `feat/explore-feature` holds 10 commits whose ids are not on
+  `main` (tip `3cd199d`, the 2.13.1 defaults flip that `main` carries under other ids). It
+  predates this task and looks superseded; left alone, deletion is the owner's call.
+- Follow-up (owner: Nady): `hooks.node.mjs` exports `initialize`, which nothing imports and
+  Node's `register` calls by name; kept under the framework-convention rule of 13.2 class 10.
+- Cleanup sweep (13.2 Step D), one line per class, base `5c2c495`, on `main`:
+  1. Debug output: 0 in production code (18 hits in added lines: 14 in the test harness and the fixtures whose output is the assertion, 2 `add(` matched by `dd\(`, 1 a test's own pattern string, 1 the usage line of the test runner).
+  2. Commented-out code and `removed:` markers: 0.
+  3. Ownerless debt markers: 0 (2 hits are `mktemp` `XXXXXX` templates).
+  4. Dead code, both directions: 0 added symbols without a reader (`initialize` excepted, see the follow-up), 0 deleted files, 0 removed import lines, 0 shell or JS functions defined without a call across the new and touched scripts and assets; the check reports a planted `lonely` function (1 reference, the definition).
+  5. Unused imports, dependencies, env vars: 0 unused imports across the capture modules and their test; no package manifest in the plugin; the four `EXPLORE_CAPTURE_*` variables are each read where they are set (`TYPESCRIPT` is the user's own override, read in `shared.mjs`).
+  6. Scratch files and empty directories: porcelain 0 lines, 0 empty directories under `skills`, `tests`, `hooks`; the run artifacts, the clones and the mutants live in the session scratchpad only.
+  7. Placeholders and stubs: 0 (3 `return null` hits are sentinels: no anchors for a hop, no hop for a line, no range holding the line).
+  8. Unrelated changes: 0 (33 paths, all in the Sprint Backlog allowlists or the recorded Stage 3 deviation).
+  9. Stale references: 0 references to the work-doc path outside itself, 0 renamed or moved paths; the 16.9, 16.10 and 16.11 cross-references verified in Phase 4 (T12, T13).
+  10. Pre-existing errors, law breaks and dead code in touched files: 0 real (the law rows over the 33 paths are prose, fixtures and the rethrow; the two nesting rows in `page.js` are the measurer counting `else if`; 0 dead functions in `page.js`, `page-flow.js` and `build-page.sh` by the class 4 check); no cleanup commit was needed.
+  11. Leaked runtime state: the scratchpad server on port 8766 (pid 78317, started for the Phase 4 browser look) stopped, the port free after; 0 fixture servers; 0 `capture.pid` files.
+  12. Dead branches: `feat/runtime-capture` deleted locally after the merge (was `baaabc1`), never pushed; `feat/explore-feature` predates the task, see the follow-up.
+  13. Focused or skipped tests: 0 (10 hits are `.exit(` matched by `xit\(`).
 
 ## Spec review (Phase 2.5), done in this session
 
@@ -1212,3 +1264,110 @@ service test runs on fakes). Findings, all patched above:
 
 Not reached: the TypeScript constructs the rewriter must leave alone (decorators,
 `satisfies`, labelled statements, `return` inside `finally`); T15's tests reach them.
+
+## Law self-audit
+
+```
+Law self-audit
+1. Every phase ticked with its exit artifact, none deleted, skips reasoned?   yes
+2. Every question to the user went through the wizard tool?                   yes
+3. Every scout ran at every stage end and at Phase 5 start (the design scout too on UI-bearing work), every row dispositioned? yes
+4. Evidence Ledger has a row per task and per acceptance bullet, all fresh?    yes
+5. The three ship-gate rows are present, each ✅ or a reasoned skip?           yes
+6. Phase 5 coverage ledger has a row per touched path, decision table empty?   yes
+7. Touched scope has zero banned tokens, zero cap breaks, zero inline types?   yes
+8. Every new file is placed and named per section 2.2?                         yes
+9. No git command that discards work was run; no AI attribution in commits?    yes
+10. Every claim in the update log has a proof row behind it?                   yes
+11. Helper availability recorded once at task start, every mandatory send made or reasoned? yes
+12. Every helper result re-run here before the tick that rests on it?          yes
+13. Every stage swept its leftovers both ways, dead code in touched files removed in its own commit, every new symbol's reuse search shown? yes
+14. Phase 1 closed on a coverage map with no holes, the intent confirmed through Q0, every fact and recommendation tagged with a source from this session, none from memory? yes
+```
+
+## Update log
+
+**Problem**
+An explore page showed the code of a feature, hop by hop, but never what that code actually did: no arguments, no results, no errors, no timings. "Why did it do that" still needed a debugger.
+
+**Root cause**
+Nothing recorded a run. The page was built from the source tree and a hand-written trace only.
+
+**Solution**
+The page can now carry one real run. Point the explore command at the project's own test, or start the app, fire a request and stop, and every function inside the excerpts is wrapped in memory while it runs: what went in, what came out or was thrown, how long it took, and which way each if, ternary and switch went. The page gets a Runtime tab, a block under each excerpt, a chip on every function and branch line, and timings on the sequence arrows. Nothing is written into the project.
+
+**Verification evidence**
+On the backend's estimates test: `wrote capture.json: 37 anchors, 185 calls, 6 branches, 21 threw, exit 0`; `git status --porcelain` empty before and after. The plugin's suites: `13 suites, 723 passed, 0 failed`.
+
+**Deployment status**
+Shipped: on `main` (`baaabc1`) and pushed to GitHub; the installed plugin moved from 2.13.1 to 2.14.0 (restart Claude Code to load it). The send-estimate page is republished at its existing link with the run on it.
+
+----
+
+**Problem**
+The backend runs on Bun and other projects run on Node. A capture that worked on one would have been useless on the other.
+
+**Root cause**
+Rewriting code as it loads is done differently by the two runtimes.
+
+**Solution**
+Both are supported by one rewriter: a Bun preload and a Node import hook, picked from the command you run. They record the same events.
+
+**Verification evidence**
+`ok node and bun record the same calls, values, throws and branches`; `ok node: the runtime is node`; the runner suite `49 passed, 0 failed`.
+
+**Deployment status**
+Shipped with the release above.
+
+----
+
+**Problem**
+A run's values include passwords, emails, phone numbers and tokens; a page holding them raw would be a leak.
+
+**Root cause**
+Values recorded from a live run are whatever the code held.
+
+**Solution**
+Every value is masked and capped before it reaches disk: secret-shaped keys, emails, phone numbers, JWTs and tokens, and, after the review, tickets and tokens inside URLs and the value of any secret-shaped query parameter. A second scan refuses a capture if anything slipped, and the page builder scans again before embedding. A date is no longer mistaken for a phone number, and an email inside a URL no longer swallows the path around it.
+
+**Verification evidence**
+On the real capture: `strings with @ in the new capture: 0 (a planted one would count: 1)`; `ok leak: refused with the line`; `ok a ticket in a query is masked and the rest of the query kept`; `ok a uuid segment and a plain query survive, the email inside still masked`.
+
+**Deployment status**
+Shipped with the release above.
+
+----
+
+**Problem**
+Two edge cases could have hurt the program being observed: a value the recorder could not serialise would have thrown inside the observed function, or crashed a Node app through an unhandled rejection, and a very wide, deep value made every call cost a quarter of a second.
+
+**Root cause**
+The recorder walked every node the depth cap allowed before finding the result too big to keep, and nothing guarded its serialisation.
+
+**Solution**
+The recorder never throws into observed code (such a value becomes a marker), and a walk stops after 1000 objects and arrays.
+
+**Verification evidence**
+Before: a proxy with a throwing trap printed `THREW TypeError trap` and, on the async path, `UNHANDLED TypeError`; after: `ok a value whose trap throws becomes a marker instead of a throw into the caller`. The same 40-key, 4-level value: old sink `233.6 ms`, new sink `5.0 ms`.
+
+**Deployment status**
+Shipped with the release above.
+
+----
+
+**Problem**
+Stopping a live capture signalled whatever the pid file held. A file holding `1` would have signalled every process you own.
+
+**Root cause**
+The stop command trusted the file's content.
+
+**Solution**
+The stop command refuses a pid file that does not hold a number above 1, before any signal is sent.
+
+**Verification evidence**
+`ok stop with a pid file holding no pid: refused`, `ok stop with pid 1: refused before any signal`; both went red on a copy with the guard's messages changed (`47 passed, 2 failed`), and the runner suite is `49 passed, 0 failed`.
+
+**Deployment status**
+Shipped with the release above.
+
+Happy to go deeper on any of these, just say which one.
