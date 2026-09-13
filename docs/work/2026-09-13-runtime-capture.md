@@ -1,7 +1,7 @@
 ---
 slug: 2026-09-13-runtime-capture
 title: Runtime capture for explore-feature, real values at every anchor
-status: verifying
+status: reviewing
 type: feature
 created: 2026-09-13
 project: engineering-rules-plugin
@@ -26,8 +26,8 @@ sprint_goal: |
 - [x] Phase 2. Plan + gate (work-doc written, user "go")
 - [x] Phase 2.5. Spec review (report produced, doc patched)
 - [x] Phase 3. Implement (every task ticked with evidence, every stage committed, scouts run)
-- [>] Phase 4. Verify (Evidence Ledger complete, triad green, ship-gate rows present)
-- [ ] Phase 5. Review (coverage ledger complete, decision table empty, fixes verified)
+- [x] Phase 4. Verify (Evidence Ledger complete, triad green, ship-gate rows present)
+- [>] Phase 5. Review (coverage ledger complete, decision table empty, fixes verified)
 - [ ] Phase 6a. Re-verify + land (Steps A, B, C)
 - [ ] Phase 6b. Cleanup sweep (Step D)
 - [ ] Phase 6c. Archive work-doc to `done/` (Step F)
@@ -944,7 +944,118 @@ paths, no attribution; hash in the Phase 4 entry.
 
 ## 7. Sprint Review
 
-(empty until Phase 4)
+### Evidence Ledger (Phase 4, 2026-09-13)
+
+Tier per row: a fresh run cited by name (tier 2) unless the row says spot-check (tier 3);
+every command ran in this session after `5e6907d`, and the proof sample is copied output.
+
+| Item | Type | Claim | What I ran | Proof sample | Result |
+|---|---|---|---|---|---|
+| T1 | task | `shared.mjs` reads the env, maps the trace, resolves typescript 5 and refuses 7 | `bash skills/explore-feature/capture/tests/rewrite.test.sh` | `ok readEnv refuses a missing variable`, `ok a typescript without the compiler API is refused: typescript 7.0.0 … has no compiler API`, `47 passed, 0 failed` | ✅ |
+| T2 | task | the sink records enter, exit, throw, void, branch and switch, masked and capped | same run | `ok secret-shaped keys are masked at any depth`, `ok a promise exit is recorded when it settles`, `ok a body that falls off the end records a void exit`, `ok a value over the byte cap becomes a marker` | ✅ |
+| T3a | task | the rewriter anchors every function in range and changes no value | same run | `ok anchor names in source order: sendEstimate,classify,boom,later,(fn in new Promise),(fn in setTimeout),Orders.add,twice,(fn in emitter.on),log`, `ok the line count is kept: 50`, `ok boom rethrows the same error` | ✅ |
+| T3b | task | `if`, ternary and `switch` are recorded per line | same run | `ok the branches of sendEstimate in order: 5:true,5:false,8:true`, `ok the switch value is recorded` | ✅ |
+| T4 | task | the Bun preload rewrites in memory and flushes under `bun test` | `bash skills/explore-feature/scripts/tests/capture-run.test.sh` | `ok bun: the wrote line` (`3 anchors, 5 calls, 2 branches, 1 threw, exit 0`), `ok bun test: the wrote line`, `ok override 0: nothing is flushed`, `47 passed, 0 failed` | ✅ |
+| T5 | task | the Node loader records the same as Bun | same run | `ok node: the runtime is node`, `ok node and bun record the same calls, values, throws and branches` | ✅ |
+| T6a | task | test mode: usage, missing inputs, aggregate, scan, verify, the wrote line | same run | `ok no argument prints the usage`, `ok a missing trace is named`, `ok no anchor: named`, `ok leak: refused with the line` | ✅ |
+| T6b | task | live mode backgrounds the app and `--stop` collects | same run | `ok live: started`, `ok live: the app answers under the capture` (`hi nady`), `ok stop: the wrote line` (`2 calls, 1 branches, 0 threw, stopped`), `ok stop twice: refused` | ✅ |
+| T7 | task | the aggregate folds events, the verify refuses a hop the trace lacks | same run; `build-page.sh … --capture capture-bad.json` (anchor 0 set to hop `nope`) | `ok bun: greet went both ways` (`[2,[true,false]]`), `ok bun: a promise handed back is recorded when it settles`; `build-page: capture does not match the trace: anchor 0: hop nope is not in the trace`, `page-bad.html: No such file or directory` | ✅ |
+| T8 | task | 16.10 carries the `capture.json` contract and `branches[].line` | `grep -n "^## capture.json\|branches\[\].line\|TypeScript 5" 16.10` (spot-check) | `160:## capture.json, written by capture-run.sh`, `213:… has to be TypeScript 5 with the JS compiler API`, `302:… a branch chip sits on branches[].line` | ✅ |
+| T9 | task | the `page.js` seams, the blob element, the builder's `--capture` | `bash …/build-page.test.sh`; `bash tests/explore-feature-page.test.sh` | `56 passed, 0 failed` (embedded once, checked, three refusals, usage, `--capture=`); `24 passed, 0 failed` (`registerPaneExtra`/`registerLineMark` 2, `id="capture-data"` 1) | ✅ |
+| T10 | task | `page-capture.js` renders the block per excerpt, the chips, the Runtime tab | the built page in the browser pane (1494 px, dark), counted through JS | `runtimeBlocks 23` (= 23 hop rows in the capture), `lineChips 43` (= 37 anchors + 6 branch lines), `tabs 9`; hop 15's block: `12× 88.8 ms`, `true, false`, IN, OUT, TOOK `48.3 ms, settled later`, THREW `PermissionDenied` | ✅ |
+| T11 | task | `page-flow.js` labels the arrows of hops with calls | the Sequence tab, counted through JS | `seqMs 14` (= 14 hops with at least one call), samples `8.46 ms`, `68.8 ms, threw`, `0.17 ms, threw` | ✅ |
+| T12 | task | 16.9 carries step 6b, both modes, the stop, the handoff line, the refusals | grep counts over 16.9 (spot-check) | `capture-run.sh 7, --test 1, --live 2, --stop 2, Captured: 4, Step 6b 1, compiler API 2` | ✅ |
+| T13 | task | 16.11 carries gate row 13 and section 13 | `grep -n "no capture\|^### 13\." 16.11` (spot-check) | `242: … yes / no / no capture`, `258:### 13. Captured values: observations of one run, masked, never the contract` | ✅ |
+| T14 | task | sub-skill, README, CHANGELOG and both manifests at 2.14.0 | grep counts; `claude plugin validate --strict .` | `2.14.0 in README 2, CHANGELOG 1, plugin.json 1, marketplace.json 1; capture/ in the sub-skill 1`; `122 sections on disk = README = plugin.json`; `✔ Validation passed` | ✅ |
+| T15 | task | rewriter tests, watched red | the rewrite suite; three copies through `CAPTURE_DIR` (Stage 6 entry) | `47 passed, 0 failed`; sink writing `<mail>` → `43 passed, 3 failed`; API check dropped → `FAIL a typescript without the compiler API is refused`; arrows skipped → `42 passed, 4 failed` | ✅ |
+| T16 | task | runner tests, watched red | the capture-run suite; a copy through `CAPTURE_RUN_SH` whose `scan` is a no-op | `47 passed, 0 failed`; `FAIL leak: refused with the line`, `FAIL leak: exit 1`, `FAIL leak: the aggregate and the events are gone` | ✅ |
+| T17 | task | builder and template tests, watched red | the two suites; copies through `BUILD_PAGE_SH` and `ASSETS_DIR` | `56/0`, `24/0`; `check_capture` no-op → 4 `FAIL` (named, exit, writes nothing, missing file); guard dropped → `FAIL page-capture.js registers nothing without a capture` | ✅ |
+| T18 | task | the real capture, and the page republished with it | in `SyanatBackend` (`d0a1afd`): `capture-run.sh <dir>/trace.json --test bun test --timeout 30000 src/modules/work-orders/estimates/tests/estimates.service.test.ts`; `build-page.sh … --capture`; the artifact tool with `url` | `wrote <dir>/capture.json: 37 anchors, 185 calls, 6 branches, 21 threw, exit 0`; porcelain lines 0 before and after; `same anchors, calls, values, throws and branches as the published run: yes`; `Published … at https://claude.ai/code/artifact/487665d0-7460-4ca7-8b90-45bf40c4d621` | ✅ |
+| AC1 | acceptance | test mode writes per-anchor calls, values, errors, durations and per-line branches | the capture-run suite; the real run | `ok bun: the throw is recorded` (`{"error":"RangeError","message":"negative"}`), `ok bun: check went false, then true` (`[6,[false,true]]`); real: 185 calls, 21 threw, 6 branch lines, `ms` on every finished call (unfinished 0) | ✅ |
+| AC2 | acceptance | live mode and `--stop` collect the same file | the capture-run suite | `ok stop: the email is masked in the argument and the value` (`[["nady","hi nady"],["<email>","hi <email>"]]`), `ok stop: a stopped run has no exit code` (`null`), `ok stop: the pid file is gone` | ✅ |
+| AC3 | acceptance | both modes leave the repository untouched | the suite; the real run | `ok bun: the repo is untouched`, `ok node: the repo is untouched`, `ok leak: the repo is untouched`, `ok live: the repo is untouched`; SyanatBackend `git status --porcelain` 0 lines before and after two runs | ✅ |
+| AC4 | acceptance | masking and caps before disk; the scan refuses what slipped | the rewrite suite's masks; jq over the real capture; the leak test | `ok an email is masked`, `ok a phone number is masked`, `ok a hyphenated date is not a phone number`, `ok a jwt is masked`, `ok an array is capped to 20 items and a marker`; real: `strings with @: 0 (planted: 1)`, `<phone>` on `phone` only (69), `<masked>` on `sendOtp` (40); `ok leak: the aggregate and the events are gone` | ✅ |
+| AC5 | acceptance | a capture naming a hop or line the trace lacks is refused; the builder embeds only after the check | the builder on the mutated real capture; the suite | `build-page: capture does not match the trace: anchor 0: hop nope is not in the trace`, no page written; `ok capture with a hop the trace lacks: writes nothing` | ✅ |
+| AC6 | acceptance | the block, the chips, the Runtime tab, the arrow timings; nothing without a capture | the browser counts (T10, T11); the suites | `runtimeBlocks 23, lineChips 43, tabs 9, seqMs 14`; without a capture: blob `null`, `Explore.registerPanel('runtime'` absent from the without-page (build-page suite), `if (!capture) return;` 1 (template suite), the 8-tab page of 2.13.1 | ✅ |
+| AC7 | acceptance | 16.9, 16.10, 16.11, the sub-skill, README, CHANGELOG say so; version 2.14.0 | rows T8, T12, T13, T14 | as those rows | ✅ |
+| AC8 | acceptance | every piece tested; suite green, shellcheck clean, validate strict passing | Layer 1 and Layer 3 below | `13 suites, 709 checks, 0 failed` in the working tree and in a fresh clone; `shellcheck exit 0`; `✔ Validation passed` | ✅ |
+| AC9 | acceptance | one real capture on SyanatBackend, the page republished, no unmasked email | row T18; jq | `strings with @: 0`; `Published … 487665d0-7460-4ca7-8b90-45bf40c4d621`; the North-Star values on the page: mode `email` and `markOnly`, id `wo-1`, status `estimate_sent`, errors `PermissionDenied`, `InvalidWorkOrderTransition`, `CustomerEmailMissing` | ✅ |
+| AC.tests | acceptance | all tests pass, 0 failures | Layer 1 | `suites not ending in 0 failed: 0` (13 suites, 709 checks) | ✅ |
+| AC.lint | acceptance | shellcheck clean, validate clean | Layer 1 | `shellcheck exit 0`, `validate exit 0` | ✅ |
+| AC.ask | acceptance | the original ask demonstrably met on the republished page | the screenshot of hop 15 | the block under the excerpt shows what went in and came out, the chips on the lines, the timings on the arrows | ✅ |
+| hyg.backlog | protocol | every Sprint Backlog box ticked | `grep -n "^- \[.\] T[0-9]" work-doc` | 20 lines, all `[x]` (T1 to T18 with 3a, 3b, 6a, 6b) | ✅ |
+| hyg.markers | protocol | no placeholders, no ownerless markers, no debug logging | greps over the 33 touched paths | `TODO/FIXME/XXX/HACK: 0`, `debugger / console.* in the capture modules: 0` (the tests and the page print through `console.log` by design), `.only/.skip/test.todo: 0` (the pattern's 3 hits are `process.exit(`) | ✅ |
+| hyg.bans | protocol | no suppression, non-null `!`, empty catch or bare `Error` in production code | the law scout below; `grep` for `!.` and `catch (e) {}` shapes (planted proof 1) | law rows 9, all prose, history, test needles, fixtures or generated code; `non-null: 0`, `empty catches: 0` | ✅ |
+| hyg.caps | protocol | every file under 500 lines, every function under 40 | `wc -l` over the scope; hook-caps; awk over the mjs | no file over 500 (largest README 455); `no function over 40 lines in 35 files`; sink.mjs `callRecorders` 39 inside its braces, rewrite.test.mjs `main` 26 | ✅ |
+| hyg.place | protocol | every new file placed per 2.2 | `git diff --name-status 5c2c495..HEAD` | 17 new files, all under `capture/`, `capture/tests/`, `scripts/`, `scripts/tests/`, `scripts/tests/fixtures/`, `assets/`, the layout the repo brief names | ✅ |
+| scout.perf | protocol | the Phase 5-start table | `scout-run.sh` over the 33 paths | `scope 33, covered by a table 21, no table 12 (prose, JSON, CSS, HTML, jq), unreadable none`; 50 rows, every one a false-positive class: Maps bounded by the trace or the capture and built once, listeners bound once for the page's life, `JSON.stringify` inside the sink and the lazy `details` fill, sync fs at loader start and in the flush, loop-body lines that are not loops, `grep -c` once per marker (6, not data) | ✅ |
+| scout.law | protocol | the Phase 5-start table | the same run | paths 33 readable 33; 9 rows: README:157 and CHANGELOG:162/:189/:190 prose, explore-feature-page.test.sh:90 a needle, sample.ts:20 and capture-bun.fixture.sh:19 fixtures throwing `RangeError` on purpose, page.css:186 a class named `arrow-throw`, rewrite.mjs:87 the generated rethrow of the caught error | ✅ |
+| scout.design | protocol | the pre-flight run | the design scout, run-point `pre-flight`, over the six page assets | `scope 6, covered by a table 6`; one row `tell.label.eyebrow-everywhere` (3 candidates against 1 section): product-UI overlines (CALL STACK, THE RUN, PER HOP) on a tool page, Stage 4's disposition | ✅ |
+| ship.build | runtime | no build target | `ls` of the plugin root for `package.json`, `Makefile`, `justfile` | none; the plugin is loaded from source, `claude plugin validate --strict .` → `✔ Validation passed` is the artifact check | ⏭ skipped |
+| ship.boot | runtime | no boot target for this diff | `git diff --name-only 5c2c495..HEAD -- hooks/ .claude-plugin/` | `hooks/` untouched; the manifests changed version and description only, validated above; nothing the plugin runs at Claude Code startup changed | ⏭ skipped |
+| ship.smoke | runtime | the touched path works end to end | the real capture (T18), the rebuild, the page in the browser | `wrote …: 37 anchors, 185 calls, 6 branches, 21 threw, exit 0`; `wrote … page-phase4.html (243298 bytes, capture embedded)`; the counts and the screenshot of T10 and T11; console errors 0 | ✅ |
+| xpkg | protocol | cross-package verification (11.4) | one package | the plugin is the only package; the explored repository is a target of the runner, not a consumer of the plugin, and the smoke leg exercised it | ⏭ skipped |
+
+### Three layers
+
+**Layer 1, the fresh triad** (working tree at `5e6907d`): 13 suites, every one `0 failed`
+(catalog-ids 5, design-scout 67, explore-feature-page 24, hook-caps 5, hooks-wiring 12,
+law-scout 96, no-control-bytes 214, sub-commands 11, build-page 56, capture-run 47,
+page-highlight 15, verify-trace 110, rewrite 47); `shellcheck exit 0` over the seven
+globs; `✔ Validation passed`.
+
+**Layer 2, the goal.** North-Star: the page shows "the real mode, order id, status and
+error names from a run of the backend's own test" → row AC9 (`email`, `markOnly`, `wo-1`,
+`estimate_sent`, the three error names). Success Signals → rows AC8 (suite, shellcheck,
+validate), AC1 and AC3 (each fixture yields a masked email, a thrown error and a `false`
+branch; `git status` clean), T18 (the page republished). Guardrails → AC3 (nothing
+written), AC4 (masked before disk), AC6 (nothing new without a capture), AC5 (a refused
+capture never embedded), hyg.caps and T14 (no external host: the template guard's
+`external_hosts` finds only the SVG namespace). In-Scope 1 to 8 → T1 to T18. No proof
+serves a bullet outside the anchor.
+
+**Layer 3, re-earned.** A fresh clone of the branch at `5e6907d` in the scratchpad ran
+the same 13 suites (709 checks, `suites not ending in 0 failed: 0`), shellcheck (`exit
+0`) and validate (`✔ Validation passed`); the real capture ran a second time and its
+anchors, calls, values, throws and branches equal the published run's (`yes`), with the
+same `strings with @: 0` beside a planted 1.
+
+### Design pre-flight (15.30)
+
+The surface: the page assets (Stage 4 was UI-bearing). The read, from Stage 4: a
+developer tool page in the GitHub palette the template already carries; the runtime block
+is a product-UI table under each excerpt, no hero, no marketing sections; dials at the
+template's baseline on purpose. Scout: run-point `pre-flight`, `scope 6, covered 6`, the
+one eyebrow row dispositioned above. Renders: 375 (the pane's mobile preset; the page saw
+492 px and `scrollWidth = innerWidth`, no horizontal scroll), 768 (`768 = 768`), 1440
+(`1440 = 1440`) and the pane's 1494; dark (`background rgb(13, 17, 23)`) and light
+(`rgb(246, 248, 250)`, `.rt-head` text `rgb(31, 35, 40)`); reduced motion: the new classes
+declare no `animation` or `transition` (grep 0) and the template's
+`prefers-reduced-motion` block (page.css:253) stands. Boxes that apply and hold: no
+em-dash or en-dash in the copy (scout clean), one copy register, one accent and one grey
+family from the tokens, the template's faces, tabular figures on the Runtime table, both
+themes designed and rendered, the `details` folds keyboard-reachable (76 on the page) with
+the template's focus ring, no horizontal scroll at any width, `<title>` and the artifact's
+favicon. Not applicable on a tool page, recorded rather than ticked: hero, nav, section
+families, bento, logo wall, imagery, marquee, sticky stacks, forms, 404 and legal links.
+Lighthouse: skipped, a local file with no server to audit. Verification: 1 yes (the scout
+ran with the id and its one row is cited), 2 yes for the three widths and both themes, no
+for reduced motion by emulation (grep instead), 3 yes, 4 no `no` box, 5 yes (below).
+
+### What Phase 4 did not reach
+
+- Live mode against SyanatBackend itself; only the fixture server was captured live. The
+  real capture came from a unit test on fakes, so the 16 silent anchors (repositories,
+  permission lookups, the email services) carry no values on the page.
+- Node on a real project (the fixture only); typescript 6.x (5.9.3 and 7.0.2 were
+  measured); the `EXPLORE_CAPTURE_TYPESCRIPT` override on a real repository (proven on the
+  sample only).
+- TypeScript constructs the sample does not carry: decorators, overloads, `satisfies`,
+  labelled statements, `return` inside `finally`; generators and getters are non-goals.
+- The 20 000-event truncation on a real run (405 events here) and a capture over a
+  bundled or compiled project.
+- Reduced motion by emulation (proven by grep); Lighthouse numbers; the 375 render under
+  the pane's scaling; Linux and Windows paths (macOS only, where `/var` is `/private/var`).
 
 ## 8. Retrospective
 
