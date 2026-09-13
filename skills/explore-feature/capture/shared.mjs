@@ -4,11 +4,14 @@
 // exact-path filter the Bun plugin needs (a Bun onLoad callback must return an object, so the
 // filter itself has to exclude every file the capture does not own).
 import { createRequire } from 'node:module';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
 
 export const ENV_TRACE = 'EXPLORE_CAPTURE_TRACE';
 export const ENV_OUT = 'EXPLORE_CAPTURE_OUT';
+// Set to 1 by the runner when the command is `bun test`, whose runner ends the process
+// without firing exit or beforeExit; the preload then flushes from a bun:test afterAll.
+export const ENV_BUN_TEST = 'EXPLORE_CAPTURE_BUN_TEST';
 
 // readEnv(env): the two paths the runner sets, or the reason one is missing.
 export function readEnv(env) {
@@ -16,7 +19,7 @@ export function readEnv(env) {
   const outPath = env[ENV_OUT];
   if (!tracePath) return { ok: false, reason: ENV_TRACE + ' is not set; capture-run.sh sets it' };
   if (!outPath) return { ok: false, reason: ENV_OUT + ' is not set; capture-run.sh sets it' };
-  return { ok: true, tracePath, outPath };
+  return { ok: true, tracePath, outPath, bunTest: env[ENV_BUN_TEST] === '1' };
 }
 
 // loadTrace(tracePath): the root and, per absolute file path, the hops whose excerpt is in
@@ -35,6 +38,7 @@ export function loadTrace(tracePath) {
   for (const hop of trace.hops) {
     if (!hop.file || !Array.isArray(hop.range) || hop.range.length !== 2) continue;
     const abs = resolve(trace.root, hop.file);
+    if (!existsSync(abs)) return { ok: false, reason: 'hop ' + hop.id + ' names ' + hop.file + ', which is not under ' + trace.root };
     const list = files.get(abs) || [];
     list.push({ hop: hop.id, start: hop.range[0], end: hop.range[1] });
     files.set(abs, list);

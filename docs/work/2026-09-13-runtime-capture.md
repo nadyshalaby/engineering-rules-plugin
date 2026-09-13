@@ -7,7 +7,7 @@ created: 2026-09-13
 project: engineering-rules-plugin
 related: []
 base: 5c2c495
-current_task: T4
+current_task: T7
 worktree: null
 branch: null
 page_url: https://claude.ai/code/artifact/cb124491-1c35-4e68-839d-7bbf10312799
@@ -237,10 +237,10 @@ Stage 7, proof:        T18             (the real capture on SyanatBackend, the p
       inside anchored functions only, insertions applied from the end so positions hold —
       files: the same
       → verify: the sample middleware yields one `branch` per `if` and none in a nested arrow
-- [ ] T4. `capture/preload.bun.ts`: the Bun plugin with an exact-path filter and the loader by
+- [x] T4. `capture/preload.bun.ts`: the Bun plugin with an exact-path filter and the loader by
       extension — files: `skills/explore-feature/capture/preload.bun.ts`
       → verify: `bun --preload` over the spike prints enter and exit records
-- [ ] T5. `capture/register.node.mjs` + `capture/hooks.node.mjs`: sink in the main thread,
+- [x] T5. `capture/register.node.mjs` + `capture/hooks.node.mjs`: sink in the main thread,
       rewrite after `nextLoad` — files: the two named
       → verify: `node --import` over the spike prints the same records
 - [ ] T6a. `scripts/capture-run.sh`, test mode: usage, runtime detection, flag injection, env,
@@ -378,6 +378,75 @@ outside `capture/` → no match, so no existing equivalent. Dead code in touched
 
 Commit: `feat(explore-feature): capture foundation, the sink and the rewriter` on
 `feat/runtime-capture`, explicit paths, no attribution; hash recorded in the Stage 2 entry.
+
+### 2026-09-13, Stage 2 loaders: T4, T5
+
+Stage 1 landed as `fee790e`. Test mode, both tasks: `test-authoring` (T16 runs the fixture
+projects through the runner, which runs through these loaders). Placement as stated in the
+Stage 1 entry; `preload.bun.ts` keeps the plan's name and extension, a Bun-only file.
+
+Landed: `capture/preload.bun.ts` (40 lines), `capture/register.node.mjs` (22),
+`capture/hooks.node.mjs` (42); `capture/shared.mjs` gained `ENV_BUN_TEST` and a check that
+every hop's file exists under the trace root. Proven over the spike project
+(`$S/spike/main.ts` importing `lib.ts`, a two-anchor trace, the compiler linked into the
+spike's `node_modules`), all pasted in the session:
+- `bun --preload preload.bun.ts main.ts` → program output unchanged (`hi nady x2 42`),
+  exit 0, 7 events (2 anchors, enter, branch, exit, enter, exit);
+- `node --import register.node.mjs main.ts` → the same output, exit 0, 7 events, and
+  `diff` of the two files without `t`, `ms`, `seq` → identical;
+- `bun test --preload preload.bun.ts lib.test.ts` with `EXPLORE_CAPTURE_BUN_TEST=1` →
+  1 pass, 5 events flushed (`branch 2:false`, `out: "hi t"`); the probe before the fix showed
+  that `bun test` fires neither `exit` nor `beforeExit`, only a `bun:test` `afterAll`, and
+  that `afterAll` throws outside the runner, so the runner names the case through the env;
+- failure paths: no env → `EXPLORE_CAPTURE_TRACE is not set; capture-run.sh sets it`,
+  exit 2 on both runtimes; a missing trace → `ENOENT`, exit 2; a trace whose root does not
+  hold its files → `hop h0 names lib.ts, which is not under /tmp`, exit 2 on both.
+Known and recorded, not a defect of this stage: Bun resolves `typescript` from its global
+cache (`~/.bun/install/cache/typescript@7.0.2`) when the repository has none, so the
+"not installed under root" reason fires on Node only.
+The Stage 1 prover re-run after the `shared.mjs` change: `ALL OK` on Bun and on Node.
+
+Caps, measured: 14 functions in the four files, 0 over 40 lines; 0 over 3 parameters;
+`node --check` parses every `.mjs`. Triad: no shell file and no manifest touched, the 11
+suites were green at Stage 1 and no file they cover changed; boot: nothing the plugin
+loads at startup changed.
+
+#### Perf-scout (stage 2, 2026-09-13)
+
+Coverage: scope 4 | covered by a table 4 | no table: none | unreadable: none (paths in 4, read 4)
+
+| Finding | Catalog ID | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|---|
+| sync read for a CommonJS source | perf.async.sync-blocking | capture/hooks.node.mjs:30 | `readFileSync(file)` when Node handed no source | none: once per instrumented file at load, in the loader thread | false-positive |
+| file map | perf.memory.unbounded-cache | capture/hooks.node.mjs:10 | `let files = new Map()` | none: filled once from the trace in `initialize` | false-positive |
+| sync trace read | perf.async.sync-blocking | capture/shared.mjs:30 | `readFileSync(tracePath)` | none: once at install | false-positive |
+| exists check per hop | perf.async.sync-blocking | capture/shared.mjs:41 | `existsSync(abs)` | none: once per hop at install, bounded by the trace | false-positive |
+| file map | perf.memory.unbounded-cache | capture/shared.mjs:37 | `new Map()` | none: as at Stage 1 | false-positive |
+| regex in a window | perf.algorithmic.regex-in-loop | capture/shared.mjs:78 | `new RegExp` after `.map(` | none: as at Stage 1 | false-positive |
+
+#### Law-scout (stage 2, 2026-09-13)
+
+Coverage: paths handed in 4 | paths readable 4
+
+| rule_id | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|
+| none | | | | |
+
+Design scout: no UI file in scope.
+
+Sweep: 1 debug output 0 (`process.stderr.write` in the two `fail` helpers reports the
+refusal, then exit 2); 2 commented-out code 0, `removed:` 0; 3 ownerless markers 0 (grep
+over the four files: none); 4 dead code: `initialize` and `load` are read by Node's
+`register`, `ENV_BUN_TEST` by `readEnv` and the runner (T6a), `CaptureHookError` thrown in
+`initialize`; 5 unused imports 0 (`plugin`, `register`, `readFileSync`, `fileURLToPath`,
+`existsSync` each used); 9 stale references 0. Reuse search, pasted:
+`grep -rn "fileURLToPath\|nextLoad\|onLoad\|register(\|afterAll" --include=*.sh --include=*.js --include=*.mjs --include=*.ts .`
+outside `capture/` → no match. Dead code in touched files: 0, no cleanup commit. Nothing
+the plan did not authorize was changed; the env marker and the root check are the two
+additions the proof forced, both inside T4 and T1's files.
+
+Commit: `feat(explore-feature): the Bun preload and the Node loader`, explicit paths, no
+attribution; hash in the Stage 3 entry.
 
 ## 7. Sprint Review
 
