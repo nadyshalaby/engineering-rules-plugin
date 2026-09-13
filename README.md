@@ -280,7 +280,7 @@ engineering-rules-plugin/
 ├── tests/
 │   ├── catalog-ids.test.sh              every catalog id, tell id and coarse rule id cited anywhere has a row
 │   ├── design-scout.test.sh             runs the design scout's block against planted AI tells and their allowed forms
-│   ├── explore-feature-page.test.sh     the page template: five markers once, no host at all, no debug artifact, the theme blocks, the cap
+│   ├── explore-feature-page.test.sh     the page template: six markers once, no host at all, no debug artifact, the theme blocks, the cap
 │   ├── harness.sh                       shared by every test: repo root, scratch dir, the three assertions
 │   ├── hook-caps.test.sh                every shell file under 500 lines, every function under 40
 │   ├── hooks-wiring.test.sh             every wired script exists, every event script is wired, eight events, no hook on Bash
@@ -326,7 +326,7 @@ Eight checks run against the plugin itself, all on `tests/harness.sh`:
   an argument list, when the switch lacks its `off` word, or when a section a route row cites
   has no file, and proves it can fail by planting each.
 - `bash tests/explore-feature-page.test.sh` fails when the page template loses one of the
-  five markers `build-page.sh` replaces or gains a second, reaches any host at all
+  six markers `build-page.sh` replaces or gains a second, reaches any host at all
   stylesheet's, carries a console call, a `debugger`, an empty catch or an `innerHTML`
   write, loses one of the three theme blocks or the body's own ground, or crosses 500
   lines, and proves it can fail by planting each.

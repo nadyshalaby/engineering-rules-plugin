@@ -2,11 +2,14 @@
 // page.js: the core of the explore-feature page. Reads the two JSON blobs build-page.sh
 // embedded, draws the call stack, the file list and the code panes, and keeps every view
 // keyed to one selected hop. page-flow.js registers the flow-rail panels and the sequence
-// diagram through Explore.registerPanel, and page-highlight.js the syntax highlighter through
-// Explore.registerHighlighter, before the page boots.
+// diagram through Explore.registerPanel, page-highlight.js the syntax highlighter through
+// Explore.registerHighlighter, and page-capture.js, when the third blob is not null, a block
+// under each excerpt and the chips on its lines through Explore.registerPaneExtra and
+// Explore.registerLineMark, all before the page boots.
 const Explore = (() => {
   const trace = readJson('trace-data');
   const bundle = readJson('excerpts-data');
+  const capture = readJson('capture-data');
   const hops = trace.hops;
   const byId = new Map(hops.map((hop) => [hop.id, hop]));
   const position = new Map(hops.map((hop, i) => [hop.id, i]));
@@ -16,6 +19,8 @@ const Explore = (() => {
   const badgesAt = new Map();
   const invokedSets = new Map();
   const panels = new Map();
+  const paneExtraRenderers = [];
+  const lineMarkRenderers = [];
   const SKIPPED_TITLE = 'In the file, not run on this path';
   // highlight(text, file, state): one line to { tokens, state }; plain text until a highlighter registers.
   let highlight = (text, file, state) => ({ tokens: [{ text, cls: null }], state: state || {} });
@@ -71,6 +76,8 @@ const Explore = (() => {
   const basename = (path) => path.slice(path.lastIndexOf('/') + 1);
   const ELLIPSIS = String.fromCharCode(0x2026);
   const truncate = (text, max) => (text.length > max ? text.slice(0, max - 1) + ELLIPSIS : text);
+  // millis(n): a duration in milliseconds with the precision its size deserves.
+  const millis = (n) => (n >= 100 ? String(Math.round(n)) : n >= 10 ? n.toFixed(1) : n.toFixed(2)) + ' ms';
   const motion = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
   const fileMeta = (path) => fileMetaByPath.get(path) || { path, layer: 'other', role: '' };
 
@@ -150,9 +157,10 @@ const Explore = (() => {
     const marks = badgesAt.get(hop.id + ':' + lineNo) || [];
     const classes = ['ln', invoked ? 'invoked' : 'dimmed', lineNo === hop.line ? 'entry-line' : ''].join(' ').trim();
     const runs = tokens.map((run) => (run.cls ? h('span', { class: run.cls, text: run.text }) : run.text));
+    const extraMarks = lineMarkRenderers.flatMap((render) => render(hop, lineNo, api) || []);
     return h('tr', { class: classes, 'data-line': lineNo, title: invoked ? null : SKIPPED_TITLE },
       h('td', { class: 'gutter', text: lineNo }),
-      h('td', { class: 'marks' }, marks.map((kid) => badge(kid, 'callbadge'))),
+      h('td', { class: 'marks' }, marks.map((kid) => badge(kid, 'callbadge')), extraMarks),
       h('td', { class: 'src' }, h('pre', {}, runs)));
   }
 
@@ -201,7 +209,8 @@ const Explore = (() => {
       return lineRow(hop, excerpt.start + i, run.tokens);
     });
     const code = h('div', { class: 'code', tabindex: '0', 'aria-label': 'Excerpt of ' + hop.file }, h('table', { class: 'hunk' }, h('tbody', {}, rows)));
-    return h('article', { class: 'pane', id: 'pane-' + hop.id, 'data-hop': hop.id }, head, why, paneExtras(hop), code);
+    const extras = paneExtraRenderers.map((render) => render(hop, api));
+    return h('article', { class: 'pane', id: 'pane-' + hop.id, 'data-hop': hop.id }, head, why, paneExtras(hop), code, extras);
   }
 
   function renderPanes() {
@@ -305,7 +314,7 @@ const Explore = (() => {
     else if (event.key === 'k') step(-1);
     else if (event.key === '/') { event.preventDefault(); document.getElementById('search').focus(); }
     else if (event.key === '?') toggleHelp();
-    else if (event.key >= '1' && event.key <= '8') switchTab([...panels.keys()][Number(event.key) - 1]);
+    else if (event.key >= '1' && event.key <= '9') switchTab([...panels.keys()][Number(event.key) - 1]);
   }
 
   const idFromHash = () => (location.hash.startsWith('#hop-') ? location.hash.slice(5) : hops[0].id);
@@ -334,10 +343,14 @@ const Explore = (() => {
     selectHop(idFromHash(), { noScroll: location.hash === '' });
   }
 
-  const api = { trace, bundle, hops, byId, state, h, badges, num, basename, truncate, fileMeta, selectHop, matches };
+  const api = { trace, bundle, capture, hops, byId, state, h, badges, num, basename, truncate, millis, fileMeta, selectHop, matches };
   const registerPanel = (name, panel) => panels.set(name, panel);
   const registerHighlighter = (fn) => { highlight = fn; };
+  // registerPaneExtra(render): render(hop, api) returns an element placed under the excerpt, or null.
+  const registerPaneExtra = (render) => paneExtraRenderers.push(render);
+  // registerLineMark(render): render(hop, line, api) returns elements for the line's marks cell, or null.
+  const registerLineMark = (render) => lineMarkRenderers.push(render);
   applyStoredTheme();
   document.addEventListener('DOMContentLoaded', boot);
-  return { registerPanel, registerHighlighter, api };
+  return { registerPanel, registerHighlighter, registerPaneExtra, registerLineMark, api };
 })();

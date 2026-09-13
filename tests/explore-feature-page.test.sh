@@ -1,6 +1,6 @@
 #!/bin/bash
 # Guard: the explore-feature page template stays one self-contained, theme-aware page under
-# the law's caps. The five markers build-page.sh replaces are each there once, no host is
+# the law's caps. The six markers build-page.sh replaces are each there once, no host is
 # reached but the svg namespace, the scripts carry no console call, debugger, empty catch
 # or innerHTML write, the stylesheet has the three theme blocks and paints the body, the skipped
 # lines are explained (legend, tooltip, count, band), and no
@@ -13,8 +13,8 @@ ROOT=$(repo_root) || exit 1
 ASSETS="${ASSETS_DIR:-$ROOT/skills/explore-feature/assets}"
 FILE_CAP=500
 
-# marker_counts <page.html>: "MARKER n" for each of the five markers.
-marker_counts() { for m in TITLE CSS JS TRACE EXCERPTS; do printf '%s %s\n' "$m" "$(grep -c "<!--$m-->" "$1")"; done; }
+# marker_counts <page.html>: "MARKER n" for each of the six markers.
+marker_counts() { for m in TITLE CSS JS TRACE EXCERPTS CAPTURE; do printf '%s %s\n' "$m" "$(grep -c "<!--$m-->" "$1")"; done; }
 # external_hosts <files>...: every host an http(s) url in the files names, sorted, on one line.
 external_hosts() { grep -ohE 'https?://[A-Za-z0-9.-]+' "$@" | sort -u | tr '\n' ' ' | sed 's/ $//'; }
 # debug_artifacts <files>...: console calls, debugger statements, empty catches, innerHTML writes.
@@ -27,20 +27,21 @@ theme_blocks() {
 }
 # long_files <files>...: "file: N lines" for every file over the cap.
 long_files() { wc -l "$@" | awk -v cap="$FILE_CAP" '$2 != "total" && $1 > cap { print $2 ": " $1 " lines" }'; }
-template() { printf '%s\n' "$ASSETS/page.html" "$ASSETS/page.css" "$ASSETS/page.js" "$ASSETS/page-highlight.js" "$ASSETS/page-flow.js"; }
+template() { printf '%s\n' "$ASSETS/page.html" "$ASSETS/page.css" "$ASSETS/page.js" "$ASSETS/page-highlight.js" "$ASSETS/page-flow.js" "$ASSETS/page-capture.js"; }
 
 test_markers_once() {
   assert_eq "each marker exactly once" "TITLE 1
 CSS 1
 JS 1
 TRACE 1
-EXCERPTS 1" "$(marker_counts "$ASSETS/page.html")"
+EXCERPTS 1
+CAPTURE 1" "$(marker_counts "$ASSETS/page.html")"
 }
 test_nothing_is_external() {
   assert_eq "the svg namespace is the only url" "http://www.w3.org" "$(template | xargs grep -ohE 'https?://[A-Za-z0-9.-]+' | sort -u | tr '\n' ' ' | sed 's/ $//')"
 }
 test_no_debug_artifacts() {
-  assert_eq "no console, debugger, empty catch, innerHTML or document.write" "" "$(debug_artifacts "$ASSETS"/page.js "$ASSETS"/page-highlight.js "$ASSETS"/page-flow.js)"
+  assert_eq "no console, debugger, empty catch, innerHTML or document.write" "" "$(debug_artifacts "$ASSETS"/page.js "$ASSETS"/page-highlight.js "$ASSETS"/page-flow.js "$ASSETS"/page-capture.js)"
 }
 test_theme_blocks_and_body_ground() {
   assert_missing "the three theme blocks are present" "absent" "$(theme_blocks "$ASSETS/page.css")"
@@ -51,7 +52,7 @@ test_files_under_the_cap() {
 }
 test_scripts_parse() {
   if command -v node >/dev/null 2>&1; then
-    assert_eq "the three scripts parse" "" "$(node --check "$ASSETS/page.js" 2>&1; node --check "$ASSETS/page-highlight.js" 2>&1; node --check "$ASSETS/page-flow.js" 2>&1)"
+    assert_eq "the four scripts parse" "" "$(node --check "$ASSETS/page.js" 2>&1; node --check "$ASSETS/page-highlight.js" 2>&1; node --check "$ASSETS/page-flow.js" 2>&1; node --check "$ASSETS/page-capture.js" 2>&1)"
   else printf 'skip both scripts parse: node is not on PATH\n'; fi
 }
 # The checks have to be able to fail: a copy with a doubled marker, a second host, a console

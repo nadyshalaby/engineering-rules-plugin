@@ -59,21 +59,31 @@
       svgEl('text', { class: 'seq-back-label' + (thrown ? ' seq-throw-label' : ''), x: Math.min(x1, x2) + 14, y: y + 32, text: label.slice(0, 40) })];
   }
 
-  // arrow: one clickable call arrow; geo is { laneX, y }.
+  // timingLabel: the time the captured run spent in a hop, under its arrow; row is the
+  // capture's record for the hop, absent without a capture or when the run never entered it.
+  function timingLabel(api, row, geo) {
+    if (!row || !row.calls) return [];
+    const shown = api.millis(row.ms || 0) + (row.threw ? ', threw' : '');
+    return [svgEl('text', { class: 'seq-ms', x: geo.labelX, y: geo.y + 11, 'text-anchor': geo.anchor, text: shown })];
+  }
+
+  // arrow: one clickable call arrow; geo is { laneX, runRows, y }.
   function arrow(api, hop, geo) {
     const parent = api.byId.get(hop.from);
     const y = geo.y;
     const x1 = geo.laneX.get(parent.file);
     const x2 = geo.laneX.get(hop.file);
     const labelX = x1 === x2 ? x1 + 40 : Math.min(x1, x2) + Math.abs(x2 - x1) / 2;
+    const anchor = x1 === x2 ? 'start' : 'middle';
     const select = () => api.selectHop(hop.id, {});
     const classes = 'seq-hop' + (hop.status === 'unresolved' ? ' unresolved' : '');
     return svgEl('g', { class: classes, 'data-hop': hop.id, tabindex: '0', role: 'button', 'aria-label': hop.title, onclick: select,
       onkeydown: (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(); } } },
       svgEl('path', { class: 'arrow', d: arrowPath(x1, x2, y), 'marker-end': 'url(#head)' }),
-      svgEl('text', { class: 'seq-label', x: labelX, y: y - 7, 'text-anchor': x1 === x2 ? 'start' : 'middle', text: api.truncate(hop.title, 26) }),
+      svgEl('text', { class: 'seq-label', x: labelX, y: y - 7, 'text-anchor': anchor, text: api.truncate(hop.title, 26) }),
       svgEl('circle', { class: 'seq-num', cx: x1, cy: y, r: 9 }),
       svgEl('text', { class: 'seq-num-text', x: x1, y: y + 3.5, 'text-anchor': 'middle', text: api.num(hop.id) }),
+      ...timingLabel(api, geo.runRows.get(hop.id), { labelX, y, anchor }),
       ...backArrow(hop, { x1, x2, y }));
   }
 
@@ -89,11 +99,12 @@
     const rows = api.hops.filter((hop) => hop.from && hop.kind !== 'type');
     const lanes = lanesOf(api, rows);
     const laneX = new Map(lanes.map((file, i) => [file, PAD + i * LANE_W + LANE_W / 2]));
+    const runRows = new Map(((api.capture && api.capture.hops) || []).map((row) => [row.hop, row]));
     const width = PAD * 2 + lanes.length * LANE_W;
     const height = HEAD_H + rows.length * ROW_H + PAD;
     const svg = svgEl('svg', { class: 'seq', viewBox: '0 0 ' + width + ' ' + height, width, height, role: 'group', 'aria-label': 'Sequence diagram' },
       defs(), ...lanes.map((file) => laneHead(api, { file, x: laneX.get(file), height })),
-      ...rows.map((hop, i) => arrow(api, hop, { laneX, y: HEAD_H + i * ROW_H + 12 })));
+      ...rows.map((hop, i) => arrow(api, hop, { laneX, runRows, y: HEAD_H + i * ROW_H + 12 })));
     const legend = api.h('p', { class: 'seq-legend' }, api.h('span', {}, 'Solid: a call. Dashed grey: a return. Red: a throw. Dashed amber: unresolved from the code. Numbers match the badges everywhere else.'));
     return api.h('div', {}, legend, api.h('div', { class: 'seq-wrap' }, svg));
   }

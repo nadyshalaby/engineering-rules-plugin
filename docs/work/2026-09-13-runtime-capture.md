@@ -7,7 +7,7 @@ created: 2026-09-13
 project: engineering-rules-plugin
 related: []
 base: 5c2c495
-current_task: T9
+current_task: T12
 worktree: null
 branch: null
 page_url: https://claude.ai/code/artifact/cb124491-1c35-4e68-839d-7bbf10312799
@@ -259,17 +259,18 @@ Stage 7, proof:        T18             (the real capture on SyanatBackend, the p
 - [x] T8. 16.10: the `capture.json` contract, `branches[].line`, and where the file lives —
       files: `references/16-other-routes/16.10-the-trace-data-schema.md`
       → verify: the section names every field the aggregate emits, cross-checked by grep
-- [ ] T9. `page.js` seams (`registerPaneExtra`, `registerLineMark`, `capture` lookup),
-      `page.html` `<!--CAPTURE-->` blob, `build-page.sh` optional fourth argument that re-runs
-      `capture-verify.jq` against the trace and refuses on any line, and every class the
-      renderer will use in `page.css` (`.runtime`, `.rt-call`, `.rt-in`, `.rt-out`, `.rt-threw`,
-      `.rt-ms`, `.linechip`, `.linechip.is-true`, `.linechip.is-false`, `.rt-table`) — files:
-      those four
+- [x] T9. `page.js` seams (`registerPaneExtra`, `registerLineMark`, `capture` lookup),
+      `page.html` `<!--CAPTURE-->` blob, `build-page.sh` `--capture <capture.json>` flag (the
+      plan said "optional fourth argument"; the fourth positional was already the assets dir,
+      found at Stage 4) that re-runs `capture-verify.jq` against the trace and the secret scan
+      and refuses on any line, and every class the renderer will use in `page.css` (`.runtime`,
+      `.rt-call`, `.rt-in`, `.rt-out`, `.rt-threw`, `.rt-ms`, `.linechip`, `.linechip.is-true`,
+      `.linechip.is-false`, `.rt-table`) — files: those four
       → verify: a build without a capture renders every 2.13.1 view unchanged and an empty blob
-- [ ] T10. `page-capture.js`: the Runtime tab, the per-excerpt block, the line chips — files:
+- [x] T10. `page-capture.js`: the Runtime tab, the per-excerpt block, the line chips — files:
       `skills/explore-feature/assets/page-capture.js`
       → verify: a fixture capture renders N Runtime blocks and the chips in the browser
-- [ ] T11. `page-flow.js`: ms labels on arrows of hops with calls — files: that one
+- [x] T11. `page-flow.js`: ms labels on arrows of hops with calls — files: that one
       → verify: the diagram shows `12 ms` on an arrow in the browser
 - [ ] T12. 16.9: step 6b (both modes, the commands, the stop), the `Captured:` handoff line,
       two anti-rationalisations — files: `references/16-other-routes/16.9-exploring-one-feature.md`
@@ -546,6 +547,113 @@ full, every function called), no cleanup commit.
 
 Commit: `feat(explore-feature): the capture runner, the aggregate and the contract`,
 explicit paths, no attribution; hash in the Stage 4 entry.
+
+### 2026-09-13, Stage 4 page: T9, T10, T11
+
+Stage 3 landed as `8da4e5c`. Test mode: T9, T10 and T11 `test-authoring` (T17 covers the
+builder's `--capture` and the template list; the two existing guards were only kept truthful
+here, see the sweep). Placement: `page-capture.js` flat in `assets/` beside the other three
+scripts, the skill's convention; the classes in `page.css`, the seams in `page.js`.
+
+Two deviations from the plan's wording, both inside its files:
+- `build-page.sh` takes `--capture <capture.json>` rather than "an optional fourth argument":
+  the fourth positional was already the assets dir (`build-page.test.sh` passes it), and a
+  flag survives either order; T9's text now says so.
+- `build-page.sh` re-runs the secret scan on the capture as well as `capture-verify.jq`,
+  since the page is what gets published; 16.10's one sentence about the builder says
+  "checks 3 and 4" now (it said 4).
+
+Landed: `assets/page-capture.js` (152 lines, new: the block under each excerpt, the line
+chips, the Runtime tab, two legend rows; registers nothing without a capture), `page.js`
+(the `capture` blob, `registerPaneExtra`, `registerLineMark`, `api.capture`, `api.millis`,
+tabs 1 to 9), `page.html` (the `capture-data` blob, the key legend 1 to 9), `page.css` (+31
+lines: `.runtime` and the `.rt-*` family, `.linechip` and its five states, `.rt-table`,
+`.seq-ms`), `page-flow.js` (`timingLabel`, fed from a Map of the capture's hop rows built
+once per diagram render), `build-page.sh` (179 lines: `parse_args`, `check_capture`,
+`scan_capture`, `capture_json`; the JS list and the template list gain `page-capture.js`,
+the markers gain `CAPTURE`, the wrote line says `capture embedded`), and the two guards
+kept truthful (`build-page.test.sh` copies the fifth script into its broken-template
+fixture; `explore-feature-page.test.sh` counts six markers and parses four scripts).
+
+Proven, pasted in the session (`$S/stage4/`; a capture fixture shaped from the smoke trace
+by `fixture.jq`: 34 anchors, 34 calls, 31 branches, 6 throws, `capture-verify.jq` → 0
+lines on it and one line on a planted bad hop):
+- T9: a build without a capture writes `null` into the blob, and the page differs from the
+  build with one in nothing but that line (`diff` after dropping the two blob lines: 0); in
+  the browser the without-page has 0 Runtime blocks, 0 chips, 8 tabs, 3 legend rows,
+  `api.capture` null, 39 panes, no console error; `--capture` with a bad hop → `capture
+  does not match the trace: anchor 0: hop nope is not in the trace`, exit 1; an AWS-shaped
+  key planted in a captured argument → `the capture carries a hardcoded secret…`, exit 1;
+  a missing file, broken JSON, `--capture` with no value and an unknown flag refuse (exit
+  1, 1, 2, 2) and `never.html` is never written; the assets dir still works as the fourth
+  positional beside `--capture=`; the build with the fixture: `wrote … (161802 bytes,
+  capture embedded)`, 0 markers left;
+- T10: the with-page renders 34 Runtime blocks, 34 anchor blocks, 34 call rows, 65 chips in
+  the code (34 call chips, 31 branch chips), 9 tabs ending in Runtime, 5 legend rows; the
+  first chip reads `1× 1.50 ms`; hop 5's block shows the masked arguments
+  `["sample-h4",{"mode":"email","email":"<email>","password":"<masked>"}]`,
+  `SampleError: planted h4` in red, `5.50 ms` and `L30 true`, and its amber `1× 5.50 ms`
+  chip sits beside line 29 (screenshot); the folds: with a first anchor of 7 calls the
+  `2 more calls` fold holds 1 child before opening and 3 after (its 2 rows), a long value's
+  pretty `pre` is absent until opened and built once across a close and reopen;
+- T11: the Sequence tab shows 33 `.seq-ms` labels (34 hops with calls, the entry hop has no
+  arrow), samples `2.50 ms` and `5.50 ms, threw`.
+`node --check` over the four scripts: all parse. No function over 40 lines (awk over the
+three scripts). Test mode of the runtime tab against the real capture is T18.
+
+Triad: shellcheck clean over the whole repo (the 2.13.1 command); `claude plugin validate
+--strict .` → Validation passed; 11 suites, 11 pass (explore-feature-page 20, build-page 39,
+no-control-bytes 207). Boot: the plugin loads no script at startup; the page boots in the
+browser with no console error, with and without a capture.
+
+#### Perf-scout (stage 4, 2026-09-13)
+
+Coverage: scope 8 | covered by a table 6 | no table: page.css, page.html (no loop or query) | unreadable: none (paths in 8, read 8)
+
+| Finding | Catalog ID | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|---|
+| every call row past the fifth, and every long value's pretty form, built at boot | perf.obs.eager-log-serialization | page-capture.js:36 and :58 on the first run; :35 on the second, now inside the toggle handler | `h('pre', { text: JSON.stringify(value, null, 2) })` per long value, `calls.slice(CALLS_SHOWN).map(callRow)` per anchor | build on the `details` toggle, once (proven above: 1 child before, 3 after) | fixed |
+| a linear search per arrow | perf.loop-body-candidate | page-flow.js:65 on the first run | `(api.capture.hops \|\| []).find(...)` inside `arrow()`, once per hop | `runRows`, one Map per `sequence()` render, passed in geo; the row is gone on the second run | fixed |
+| the inline text of each value | perf.obs.eager-log-serialization | page-capture.js:28 | `JSON.stringify(value)` for the inline form | none: the inline text is the render itself, each value capped at 2048 bytes by the sink | false-positive |
+| three maps and the run-rows map | perf.memory.unbounded-cache | page-capture.js:15-17, page-flow.js:102 | `new Map()` keyed by hop and line | none: built once from the embedded blob and bounded by it | false-positive |
+| one listener | perf.memory.leaked-listeners | page-capture.js:151 | `DOMContentLoaded` → the legend rows | none: one listener for the page's life | false-positive |
+| 2.13.1 lines in page.js and page-flow.js | perf.memory.unbounded-cache, perf.memory.leaked-listeners, perf.loop-body-candidate | page.js:14-21, :86, :283, :65, :323-331, :354, :134, :139, :293; page-flow.js:17, :29, :101, :143 | maps bounded by the trace, listeners bound once at boot, `includes` over tens of hops | none: pre-existing lines this stage did not write, bounded by the trace | false-positive |
+| grep per marker | perf.process.spawn-per-item | build-page.sh:69 | `n=$(grep -c "<!--$marker-->" …)` over six literal markers | none: bounded driver | false-positive: bounded driver |
+
+#### Law-scout (stage 4, 2026-09-13)
+
+Coverage: paths handed in 8 | paths readable 8
+
+| rule_id | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|
+| ban.empty-catch | tests/explore-feature-page.test.sh:89 | `assert_missing "…" "catch (err) {}" …` | none: the guard's own needle, a string in a test | false-positive |
+| ban.bare-error | page.css:186 | `.seq .arrow-throw { stroke: var(--bad); }` | none: a class name | false-positive |
+
+#### Design-scout (stage-4, 2026-09-13)
+
+Coverage: handed in 8, readable 8 | covered by a table 5 | no table: none | out of scope 3 | unreadable: none
+
+| Finding | tell id | file:line | Evidence | Proposed fix | Status |
+|---|---|---|---|---|---|
+| three uppercase labels against one section | tell.label.eyebrow-everywhere | scope | `.label-caps` (page.css:72), `.overlay-sub` (:206), `.rt-k` (:223) against the one `<section>` in page.html, budget 1 | none | false-positive: product-UI overlines on the rails, the panels and the in/out/took keys of a data row (15.22 scope), not eyebrows on sections; two of the three are 2.13.1 |
+
+Sweep: 1 debug output 0; 2 commented-out code 0, `removed:` 0; 3 ownerless markers 0; 4 dead
+code both ways: 256 JS definitions across the four scripts each referenced at least twice
+(word grep over the scripts and page.html; a planted `plantedDeadZz` is the one it reports;
+the limit: a one-letter name like `h` cannot be told dead this way), 125 CSS classes each
+named in a script or the template (a planted `.plantedzz` is reported), every function in
+`build-page.sh` called (each name 2+ hits), `hopRow` was added and removed within the stage,
+nothing removed left a dangling reference; 5 unused variables 0 (shellcheck style clean,
+every builder variable read 3+ times); 9 stale references: 3 found and fixed in the stage
+(`README.md` "five markers" twice, 16.10 "check 4"), `five markers` left: 0. Reuse search,
+pasted:
+`grep -rn "registerPaneExtra\|registerLineMark\|millis\|linechip\|parse_args\|check_capture\|scan_capture\|capture_json\|paneExtraRenderers\|lineMarkRenderers\|timingLabel" --include=*.js --include=*.sh --include=*.css --include=*.md --include=*.html .`
+outside the stage's files → two catalog prose hits on "milliseconds", no equivalent;
+`millis` replaces the same formatter written twice (page-flow.js and page-capture.js) with
+one on `api`. Dead code in touched files: 0 (the counts above), no cleanup commit.
+
+Commit: `feat(explore-feature): the capture on the page`, explicit paths, no attribution;
+hash in the Stage 5 entry.
 
 ## 7. Sprint Review
 

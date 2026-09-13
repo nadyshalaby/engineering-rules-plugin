@@ -61,7 +61,7 @@ test_bad_inputs_are_refused() {
   refuses "broken trace" "trace file is not valid JSON" "$WORK/broken.json" "$WORK/excerpts.json" "$WORK/never.html"
   jq 'del(.excerpts[3])' "$WORK/excerpts.json" > "$WORK/stale.json"
   refuses "stale excerpts" "excerpts do not cover hop(s): h3" "$WORK/trace.json" "$WORK/stale.json" "$WORK/never.html"
-  mkdir -p "$WORK/assets" && cp "$ASSETS"/page.html "$ASSETS"/page.js "$ASSETS"/page-highlight.js "$ASSETS"/page-flow.js "$WORK/assets/"
+  mkdir -p "$WORK/assets" && cp "$ASSETS"/page.html "$ASSETS"/page.js "$ASSETS"/page-highlight.js "$ASSETS"/page-flow.js "$ASSETS"/page-capture.js "$WORK/assets/"
   refuses "missing template part" "template part is missing: $WORK/assets/page.css" "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/never.html" "$WORK/assets"
   cp "$ASSETS/page.css" "$WORK/assets/" && printf '<!--CSS-->\n' >> "$WORK/assets/page.html"
   refuses "doubled marker" "must carry the marker <!--CSS--> exactly once, has it 2 times" "$WORK/trace.json" "$WORK/excerpts.json" "$WORK/never.html" "$WORK/assets"
