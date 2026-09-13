@@ -1,0 +1,58 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><!--TITLE--></title>
+<meta name="color-scheme" content="light dark">
+<style>
+<!--CSS-->
+</style>
+<div class="app" id="app">
+  <header class="top">
+    <div class="top-name">
+      <h1 class="page-title" id="page-title">Explore</h1>
+      <span class="entry-label mono" id="entry-label"></span>
+    </div>
+    <div class="top-meta" id="meta"></div>
+    <div class="top-nav">
+      <button type="button" class="btn" id="prev" aria-label="Previous hop (k)">&#8249;</button>
+      <span class="hopcount mono" id="hopcount" aria-live="polite">1 / 1</span>
+      <button type="button" class="btn" id="next" aria-label="Next hop (j)">&#8250;</button>
+      <input class="search" id="search" type="search" placeholder="Find a file, symbol or step" aria-label="Find a file, symbol or step" autocomplete="off">
+      <button type="button" class="btn" id="theme" aria-label="Switch theme"></button>
+      <button type="button" class="btn" id="help" aria-label="Keyboard shortcuts (?)">?</button>
+    </div>
+  </header>
+  <nav class="rail rail-path" id="rail-path" aria-label="Path">
+    <h2 class="rail-head label-caps">Call stack</h2>
+    <ol class="stack" id="stack"></ol>
+    <h2 class="rail-head label-caps">Files, in call order</h2>
+    <ol class="files" id="files"></ol>
+  </nav>
+  <main class="panes" id="panes" aria-label="Code"></main>
+  <aside class="rail rail-flow" id="rail-flow" aria-label="Flow">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <section class="panel" id="panel" role="tabpanel"></section>
+  </aside>
+  <div class="overlay" id="help-overlay" hidden>
+    <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <h2 id="help-title">Keyboard</h2>
+      <dl class="keys">
+        <dt><kbd>j</kbd></dt><dd>Next hop</dd>
+        <dt><kbd>k</kbd></dt><dd>Previous hop</dd>
+        <dt><kbd>/</kbd></dt><dd>Find a file, symbol or step</dd>
+        <dt><kbd>1</kbd> to <kbd>8</kbd></dt><dd>Switch the flow tab</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Close this, clear the find box</dd>
+      </dl>
+      <p class="overlay-hint">Every numbered badge is a link. Pick one in the code, the stack, the diagram or a step, and every other view follows it.</p>
+      <button type="button" class="btn" id="help-close">Close</button>
+    </div>
+  </div>
+</div>
+<script type="application/json" id="trace-data">
+<!--TRACE-->
+</script>
+<script type="application/json" id="excerpts-data">
+<!--EXCERPTS-->
+</script>
+<script>
+<!--JS-->
+</script>

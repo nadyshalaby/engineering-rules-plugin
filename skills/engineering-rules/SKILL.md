@@ -55,11 +55,12 @@ another.
    The request is what follows the name, and it classifies under 4.1 exactly as prose does.
    This form carries no route token; every route has a sub-command of its own.
 3. **Through a route sub-command**: `/engineering-rules:quick`, `:full`, `:shape`,
-   `:walkthrough`, `:audit`, `:triage`, `:skill`, `:design` or `:log`, followed by what that
+   `:explore-feature`, `:audit`, `:triage`, `:skill`, `:design` or `:log`, followed by what that
    route needs. The sub-command loads this skill, picks its row outright, and the
-   classification in 4.1 does not run. A tenth, `/engineering-rules:agentless`, picks no
-   route: it keeps every helper shape in this session for the task in flight and every task
-   after it in this conversation, bare or with a request. The whole contract is 4.4.
+   classification in 4.1 does not run. A tenth, `/engineering-rules:helpers`, picks no
+   route: agentless is the default helper mode, and this one switches helpers on for the task
+   in flight and every task after it in this conversation, bare or with a request, until
+   `off`. The whole contract is 4.4.
 
 - **Whole invocation:** `$ARGUMENTS`
 
@@ -76,10 +77,10 @@ a request in any form, however short, and not when a sub-command loaded it. A me
 of somebody who already said what they want is ceremony, and 4.1 forbids reading a task's
 shape as a request for more of it.
 
-**Agentless mode** (4.4, 1.8) is the user's choice to keep every helper shape in this
-session for the whole task: the `/engineering-rules:agentless` sub-command, their own words
-in the message that starts the task, or the intake's helper question. It moves the reading
-here and removes nothing.
+**Agentless mode** (4.4, 1.8) is the default: every helper shape runs in this session for
+the whole task unless the user switched helpers on, by the `/engineering-rules:helpers`
+sub-command, their own words in the message that starts the task, or the intake's helper
+question. It moves the reading here and removes nothing.
 
 ## Definitions, binding wherever the word is used
 
@@ -97,7 +98,7 @@ here and removes nothing.
 | **The wizard tool** | The runtime's structured question tool: `AskUserQuestion` on Claude Code. |
 | **The agent tool** | The runtime's subagent tool: `Agent` on Claude Code. Every shape runs on a type Claude Code ships itself, none on an agent of this plugin's: `subagent_type: "fork"` for a reader that needs the conversation (the scouts, the question batch), `"Explore"` for a wide read-only search, `"Plan"`, read-only by construction, for the spec reviewer of Phase 2.5, and `"general-purpose"` for the reviewer of the diff, the mechanic and a builder, each sent its shape's prompt from 5.5 pasted whole. No send names a `model`: every helper runs on this session's model. Section 1.8 is this skill's standing request for it. In agentless mode (4.4) nothing is sent to it, and every shape runs here. |
 | **Helper** | Any unit of work sent to the agent tool: a reader, a reviewer, a mechanic or a builder (5.5). Never an owner of a phase, a tick or a claim. |
-| **Agentless mode** | The user's choice, by the `/engineering-rules:agentless` sub-command, in their own words in the message that starts the task, or through the intake (4.4), to keep every helper shape in this session for the whole task: nothing is sent to the agent tool, and every send 1.8 mandates is the same work done here, in the same order. Recorded once, on the helper line (1.8). |
+| **Agentless mode** | The default helper mode: every helper shape runs in this session for the whole task, nothing is sent to the agent tool, and every send 1.8 mandates is the same work done here, in the same order, unless the user switched helpers on by the `/engineering-rules:helpers` sub-command, in their own words in the message that starts the task, or through the intake (4.4). Recorded once, on the helper line (1.8). |
 | **The notification tool** | The runtime's push-notification tool: `PushNotification` on Claude Code. One line to the desktop and, with Remote Control, the phone. |
 | **The ledger substrate** | The runtime's todo tracker when it exposes one; otherwise the printed block. Named once at the first print. |
 | **Exit artifact** | The concrete thing that must exist before a ledger item may tick. One per phase, listed in section 5.1. |
@@ -254,7 +255,7 @@ _Adapted from Andrej Karpathy's observations on the recurring failure modes of l
 **At task start, in this order, before any code.**
 
 1. Classify the ask against Definitions: trivial, read-only or substantive. Say which in one line. A trivial ask ends here after the answer or the one-line edit.
-2. Pick the route from the table below. State it and the mode in one line: *"Quick mode."* or *"Full mode, because you asked for it."*, and *"Agentless."* with the cost line 4.4 names when the user chose it.
+2. Pick the route from the table below. State it and the mode in one line: *"Full mode."* or *"Quick mode, because you asked for it."*, then *"Agentless."* with the cost line 4.4 names, or *"Helpers on, because you asked for it."* when the user switched them on.
 3. Record the base commit: `git rev-parse HEAD`. Every touched-scope command in the task uses it.
 4. Open the ledger with the items section 5.1 lists for the mode. Name the substrate once, and on the same line record helper availability (1.8).
 5. Read the Phase 1 reference (6.1) from disk, then follow it. Every phase begins by reading its own reference file; nothing runs from memory.
@@ -309,23 +310,25 @@ loads. The permission does not sit in a reference you reach only after you alrea
 delegate, which is a permission that never arrives. It is on this line, it is not conditional
 on anyone repeating it, and no further invitation is coming. Where the runtime offers no
 agent tool, every shape below collapses into this session and the reading happens here;
-nothing is skipped because nobody could be sent. The user may choose that same collapse for
-a task, by the `/engineering-rules:agentless` sub-command, in their own words, or through
-the intake: that is agentless mode (4.4), and it too skips nothing.
+nothing is skipped because nobody could be sent. That same collapse is the default, agentless
+mode (4.4): helpers are sent only once the user switched them on, by the
+`/engineering-rules:helpers` sub-command, in their own words, or through the intake, and the
+default skips nothing either.
 
 **Record the verdict once, at task start, on the line that names the ledger substrate:**
-`Helpers: available.`, `Helpers: unavailable, every shape runs in this session.` or, when
-the user chose it, `Helpers: agentless, by user choice; every shape runs in this session.`
-Probe the runtime once, never re-probe mid-task, and never carry the answer over from a
-previous task; agentless needs no probe, only the user's word, which holds for the whole
-conversation once given (4.4), and carries the cost line of 4.4 beside it.
+`Helpers: agentless, the default; every shape runs in this session.`, or, when the user
+switched helpers on for this conversation (4.4), `Helpers: available, by user choice.` after
+one probe of the runtime, or `Helpers: unavailable, every shape runs in this session.` when
+that probe finds no agent tool. Never re-probe mid-task, and never carry a probe over from a
+previous task; the user's switch holds for the whole conversation once given, and the
+agentless line carries the cost line of 4.4 beside it.
 That recorded line is the only thing the refusal below accepts as an excuse, which is why it
 is written before it is needed rather than produced when it would be convenient.
 
-**The mandatory sends.** While helpers are available and the user did not choose agentless,
-each row is a send, not a suggestion. Under agentless, and where helpers are unavailable,
-each row is the same work done here, in the row's order, with the output the send would
-have returned (4.4).
+**The mandatory sends.** While the user has switched helpers on and the runtime has them,
+each row is a send, not a suggestion. Under agentless, the default, and where helpers are
+unavailable, each row is the same work done here, in the row's order, with the output the
+send would have returned (4.4).
 
 | Run point | Shape | What is sent | Why it is not optional |
 |---|---|---|---|
@@ -362,10 +365,10 @@ Every substantive prompt takes exactly one route. Pick it from what the user ask
 
 | Route | Sub-command | Right when | Section |
 |---|---|---|---|
-| **Quick mode** | `/engineering-rules:quick` | The default for any substantive prompt. Keeps every check and drops three pieces of ceremony. | 4.2 |
-| **Full mode** | `/engineering-rules:full` | Only when the user asks for it by name. Never auto-fires; quick never escalates into it. | 4.3 |
+| **Full mode** | `/engineering-rules:full` | The default for any substantive prompt: every check, plus a written plan the user approves first, a spec review and a work-doc. | 4.3 |
+| **Quick mode** | `/engineering-rules:quick` | Only when the user asks for it by name. Keeps every check and drops three pieces of ceremony. | 4.2 |
 | **Shaping** | `/engineering-rules:shape` | The idea is not a task yet. One or two forking questions per turn, graduating on the first build verb. | 16.1 |
-| **Code walkthrough** | `/engineering-rules:walkthrough` | Understanding code nobody in the room wrote. Traces one execution path to its leaves. | 16.9 |
+| **Explore a feature** | `/engineering-rules:explore-feature` | Understanding how a feature runs, hop by hop, from one entry point to its leaves: a browsable page, every cited line verified. | 16.9 |
 | **Codebase audit** | `/engineering-rules:audit` | Auditing a whole codebase against its rules. Not a per-diff review. | 16.3 |
 | **Review triage** | `/engineering-rules:triage` | A batch of review findings needs a per-finding accept, push-back, defer or needs-restatement decision. | 16.2 |
 | **Skill authoring** | `/engineering-rules:skill` | Writing a new reusable skill that has to pass structural checks. | 16.12 |
@@ -374,14 +377,14 @@ Every substantive prompt takes exactly one route. Pick it from what the user ask
 
 **Routing rules.**
 
-- **Quick is the floor, not a downgrade.** It runs Clarify, Implement, Debug-when-stuck, Verify, the full five-check Review, and Finish. What it drops is the written plan, the spec review and the four-option landing menu. Never a check, never the ship gate, never the evidence rules, never the question contract.
-- **No shape routes away from quick.** A big diff, a security-sensitive file or a multi-package change does not promote a task. Only the user's words do. Offer full mode in one line when a task looks like it will span sessions; do not take it.
-- **Full mode is user-locked in both directions.** It starts when they name it and no other way.
+- **Full is the default, quick is the floor.** Quick mode runs Clarify, Implement, Debug-when-stuck, Verify, the full five-check Review, and Finish. What it drops is the written plan, the spec review and the four-option landing menu. Never a check, never the ship gate, never the evidence rules, never the question contract.
+- **No shape routes away from full.** A small diff, a one-file change or a familiar fix does not demote a task to quick. Only the user's words do. Offer quick mode in one line when a task looks like a five-minute fix; do not take it.
+- **Quick mode is user-locked in both directions.** It starts when they name it and no other way; full never downgrades into it.
 - **A read-only ask is not a route.** Answer it. The ledger opens the moment an edit is decided.
 - **When two routes fit, say so and pick one.** State which and why in one line, then go.
 - **A route that is not quick or full still obeys the always-on law**, including the wizard tool, claim integrity and git safety.
-- **A sub-command outranks the classifier, never the law** (4.4). It picks the row and skips the classification in 4.1; it does not waive a phase, a check or a gate. Full mode named by `/engineering-rules:full` is named by the user, which is the one way full mode ever starts.
-- **`/engineering-rules:agentless` is not a route.** It switches the helper mode (4.4) for the task in flight and every task after it in this conversation, and combines with every row above.
+- **A sub-command outranks the classifier, never the law** (4.4). It picks the row and skips the classification in 4.1; it does not waive a phase, a check or a gate. Quick mode named by `/engineering-rules:quick` is named by the user, which is the one way quick mode ever starts.
+- **`/engineering-rules:helpers` is not a route.** It switches helpers on (4.4), agentless being the default, for the task in flight and every task after it in this conversation, `off` switches back, and it combines with every row above.
 
 ## The map
 
@@ -393,7 +396,7 @@ Every section is a file in `references/`. The number is the section id; "section
 | **1** | Always-on law | Inlined above. The reference files are stubs, except 1.5, which carries the claim-integrity procedures. |
 | **2** | Doctrine: code quality (2.1), file and folder law (2.2) | Before writing code, and before creating any file or folder. |
 | **3** | Catalogs: performance (3.1), security (3.2), test scenarios (3.3), clean code (3.4) | Look up an ID or a fix direction; never read end to end. |
-| **4** | Routes: how one is picked (4.1), quick mode (4.2), full mode (4.3), the sub-commands, the intake and agentless mode (4.4) | At task start; 4.4 the moment the skill is invoked bare, a sub-command loads it, or the user chooses agentless. |
+| **4** | Routes: how one is picked (4.1), quick mode (4.2), full mode (4.3), the sub-commands, the intake and agentless mode (4.4) | At task start; 4.4 the moment the skill is invoked bare, a sub-command loads it, or the user switches helpers on or off. |
 | **5** | Working references: the ledger (5.1), the goal anchor (5.2), voice (5.3), full mindset (5.4), delegation (5.5) | 5.1 and 5.2 at task start; 5.3 governs every chat line; 5.4 at Phase 1; 5.5 before the first helper is sent, and again after a compaction. |
 | **6** | Phase 1, Clarify: the phase (6.1), the question contract (6.2), the banks (6.3–6.11), domain mechanisms (6.12), the repo brief (6.13), investigating code (6.14), the coverage map (6.15) | When a task opens. |
 | **7** | Phase 2, Plan and gate: the phase (7.1), the work-doc template (7.2), work-doc rules (7.3) | Full mode, when writing the plan. |
@@ -405,5 +408,5 @@ Every section is a file in `references/`. The number is the section id; "section
 | **13** | Phase 6, Finish: the phase (13.1), in detail (13.2) | When closing out. |
 | **14** | Anti-patterns, seven worked examples (14.1) | Phase 3, and whenever an approach feels grand. |
 | **15** | Design: the visual law (15.1), the spec package (15.2), the contract (15.3), the direction library (15.4), extract (15.5), picking a spec (15.6), twelve directions (15.7–15.18), authoring (15.19), the read and the dials (15.20), the design-system map (15.21), page composition (15.22), copy and imagery (15.23), the AI-tell catalog (15.24), motion (15.25), implementation guardrails (15.26), the pattern vocabulary (15.27), the redesign protocol (15.28), the design scout (15.29), the pre-flight (15.30), image-first and brand work (15.31) | Any UI-bearing work, from Phase 1. |
-| **16** | Other routes: shaping (16.1), triage (16.2), audit (16.3–16.8), walkthrough (16.9–16.11), skill authoring (16.12), update log (16.13) | When the route table sends you there. |
+| **16** | Other routes: shaping (16.1), triage (16.2), audit (16.3–16.8), explore-feature (16.9–16.11), skill authoring (16.12), update log (16.13) | When the route table sends you there. |
 | **17** | Twelve ready-made design specs (17.1–17.12) | Starting a design spec fresh. A droppable appendix; nothing depends on it. |

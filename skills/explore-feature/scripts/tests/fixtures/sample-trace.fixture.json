@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "title": "Place an order",
+  "entry": { "label": "POST /orders", "kind": "http", "trigger": "A signed-in customer submits the checkout form" },
+  "root": "",
+  "summary": "A signed-in customer posts a sku and a quantity. The guard checks the session, the controller validates the body, the service inserts the row, emails a receipt and fans out an order.placed event, and the client gets the stored order back with 201.",
+  "files": [
+    { "path": "src/orders/orders.routes.ts", "layer": "route", "role": "Wires the endpoint" },
+    { "path": "src/platform/auth/require-auth.middleware.ts", "layer": "middleware", "role": "Refuses anonymous requests" },
+    { "path": "src/orders/controllers/orders.controller.ts", "layer": "controller", "role": "Parses the body, calls the service" },
+    { "path": "src/orders/schemas/orders.schema.ts", "layer": "schema", "role": "Validates the body" },
+    { "path": "src/orders/services/orders.service.ts", "layer": "service", "role": "Owns the order rules" },
+    { "path": "src/orders/repositories/orders.repository.ts", "layer": "repository", "role": "Writes the order row" },
+    { "path": "src/platform/email/email.service.ts", "layer": "external", "role": "Sends the receipt email" },
+    { "path": "src/platform/notify/notify.ts", "layer": "lib", "role": "Fans the event out" }
+  ],
+  "hops": [
+    { "id": "h0", "title": "POST /orders is wired to requireAuth, then createOrder", "file": "src/orders/orders.routes.ts", "symbol": "ordersRoutes.post", "line": 7, "evidence": "ordersRoutes.post('/orders', requireAuth, createOrder)", "range": [5, 7], "kind": "entry", "from": null, "call": null,
+      "why": "Hono runs the handler list left to right, so requireAuth has to call next() before createOrder is ever reached.", "invoked": [5, 7], "returns": "", "throws": [], "status": "verified", "author_says": "" },
+    { "id": "h1", "title": "requireAuth refuses a request with no session", "file": "src/platform/auth/require-auth.middleware.ts", "symbol": "requireAuth", "line": 4, "evidence": "export async function requireAuth", "range": [4, 11], "kind": "middleware", "from": "h0", "call": { "file": "src/orders/orders.routes.ts", "line": 7, "evidence": "requireAuth" },
+      "why": "The session was put on the context upstream; this guard only reads it, copies the user across and lets the chain continue.", "invoked": [4, 5, 6, 9, 10, 11], "returns": "void, after next() resolves", "throws": [{ "error": "Unauthorized", "when": "c.get('session') is undefined" }], "status": "verified", "author_says": "" },
+    { "id": "h2", "title": "createOrder parses the body and calls the service once", "file": "src/orders/controllers/orders.controller.ts", "symbol": "createOrder", "line": 6, "evidence": "export async function createOrder", "range": [6, 10], "kind": "call", "from": "h0", "call": { "file": "src/orders/orders.routes.ts", "line": 7, "evidence": "createOrder" },
+      "why": "HTTP glue only: Zod parses, one service call, the envelope wraps the answer with 201.", "invoked": [6, 7, 8, 9, 10], "returns": "Response 201 with { data: Order }", "throws": [{ "error": "ZodError", "when": "the body fails createOrderSchema" }], "status": "verified", "author_says": "" },
+    { "id": "h3", "title": "createOrderSchema is the shape the body must have", "file": "src/orders/schemas/orders.schema.ts", "symbol": "createOrderSchema", "line": 3, "evidence": "export const createOrderSchema = z.object({", "range": [3, 8], "kind": "type", "from": "h2", "call": { "file": "src/orders/controllers/orders.controller.ts", "line": 7, "evidence": "createOrderSchema.parse" },
+      "why": "sku must be non-empty and quantity a positive integer; CreateOrderInput is inferred from this object, so the service's parameter type cannot drift from what was validated.", "invoked": [], "returns": "", "throws": [], "status": "verified", "author_says": "" },
+    { "id": "h4", "title": "placeOrder inserts the row, then emails and notifies", "file": "src/orders/services/orders.service.ts", "symbol": "placeOrder", "line": 8, "evidence": "export async function placeOrder", "range": [8, 16], "kind": "call", "from": "h2", "call": { "file": "src/orders/controllers/orders.controller.ts", "line": 8, "evidence": "placeOrder(" },
+      "why": "The insert comes first, so a backordered sku still leaves a row behind before OutOfStock is thrown.", "invoked": [8, 9, 10, 13, 14, 15, 16], "returns": "Order", "throws": [{ "error": "OutOfStock", "when": "the inserted row came back with backordered = true" }], "status": "verified", "author_says": "" },
+    { "id": "h5", "title": "insertOrder writes one row and returns it", "file": "src/orders/repositories/orders.repository.ts", "symbol": "insertOrder", "line": 4, "evidence": "export async function insertOrder", "range": [4, 11], "kind": "io", "from": "h4", "call": { "file": "src/orders/services/orders.service.ts", "line": 9, "evidence": "insertOrder(" },
+      "why": "One tagged-template insert with returning *, so the service gets the stored row, defaults included.", "invoked": [4, 5, 6, 7, 8, 9, 10, 11], "returns": "Order, the stored row", "throws": [], "status": "verified", "author_says": "" },
+    { "id": "h6", "title": "sendReceipt emails the customer through Resend", "file": "src/platform/email/email.service.ts", "symbol": "sendReceipt", "line": 4, "evidence": "export async function sendReceipt", "range": [4, 10], "kind": "external", "from": "h4", "call": { "file": "src/orders/services/orders.service.ts", "line": 13, "evidence": "sendReceipt(" },
+      "why": "A leaf: the request leaves the process here, and nothing on this path reads the provider's answer.", "invoked": [4, 5, 6, 7, 8, 9, 10], "returns": "void", "throws": [], "status": "verified", "author_says": "" },
+    { "id": "h7", "title": "notify picks its handlers at runtime", "file": "src/platform/notify/notify.ts", "symbol": "notify", "line": 3, "evidence": "export async function notify", "range": [3, 6], "kind": "dispatch", "from": "h4", "call": { "file": "src/orders/services/orders.service.ts", "line": 14, "evidence": "notify(" },
+      "why": "Every registered key that prefixes the event name gets the payload, in registration order, so the code alone does not say which functions run next.", "invoked": [3, 4, 5, 6], "returns": "void", "throws": [], "status": "unresolved",
+      "reason": "handlers is filled at boot and matched by prefix; today two keys prefix order.placed, and a third registration would change the answer without touching this file",
+      "candidates": [ { "file": "src/platform/notify/handlers.ts", "line": 4, "evidence": "order: pushToSlack" }, { "file": "src/platform/notify/handlers.ts", "line": 5, "evidence": "'order.placed': writeAudit" } ],
+      "author_says": "" }
+  ],
+  "pseudocode": [
+    { "step": 1, "text": "Refuse the request unless a session is on it", "hops": ["h1"] },
+    { "step": 2, "text": "Validate sku and quantity from the body", "hops": ["h2", "h3"] },
+    { "step": 3, "text": "Insert the order row and read it back", "hops": ["h4", "h5"] },
+    { "step": 4, "text": "Refuse with OutOfStock when the row came back backordered", "hops": ["h4"] },
+    { "step": 5, "text": "Email the receipt, then hand the event to every handler whose key prefixes order.placed", "hops": ["h6", "h7"] },
+    { "step": 6, "text": "Answer 201 with the stored order in the envelope", "hops": ["h2"] }
+  ],
+  "branches": [
+    { "at": "h1", "name": "no session", "trigger": "!session", "taken": false, "outcome": "Unauthorized is thrown; the error handler answers 401" },
+    { "at": "h4", "name": "backordered", "trigger": "order.backordered", "taken": false, "outcome": "OutOfStock is thrown after the row was already inserted" }
+  ],
+  "failure": { "title": "A body with quantity 0", "hops": ["h2", "h3"], "steps": [ "createOrderSchema.parse throws a ZodError inside createOrder", "the error handler answers 400 with the issues", "placeOrder never runs, so nothing is inserted and no email goes out" ] },
+  "shapes": [
+    { "at": "h3", "label": "CreateOrderInput", "shape": "{ sku: string, quantity: number }" },
+    { "at": "h5", "label": "Order, the stored row", "shape": "{ id, sku, quantity, user_id, backordered }" }
+  ],
+  "decisions": [
+    { "text": "The row is inserted before the stock check, so a backorder is recorded rather than refused up front.", "alternative": "Checking stock first would need a second query and would still race with other orders.", "hops": ["h4", "h5"] }
+  ],
+  "questions": [
+    { "q": "Where does user.id come from by the time placeOrder reads it?", "a": "requireAuth copies session.user onto the context, and the controller reads it back with c.get('user').", "hops": ["h1", "h2"] },
+    { "q": "What has already been written when OutOfStock is thrown?", "a": "The order row: the throw happens after insertOrder returned.", "hops": ["h4", "h5"] },
+    { "q": "Why is the last hop unresolved?", "a": "notify matches handlers by key prefix at runtime; two registrations answer today, so the page names both instead of guessing one.", "hops": ["h7"] }
+  ],
+  "unreached": [ "src/platform/email/resend.client.ts, the provider client and its retry policy", "The error handler that turns Unauthorized, ZodError and OutOfStock into responses" ],
+  "related": []
+}

@@ -21,8 +21,9 @@ In this order, before anything else:
    pasted most recently in this conversation; when there is neither, ask for them through
    the wizard tool (4.4), one question, and nothing else.
 3. **Say the route and the mode in one line** (1.7, step 2): *"Review triage."*, then
-   *"Agentless."* with the cost line 4.4 names when agentless is on: switched on by
-   `/engineering-rules:agentless` earlier in this conversation, or named in the request.
+   *"Agentless."* with the cost line 4.4 names, agentless being the default, unless helpers
+   were switched on by `/engineering-rules:helpers` earlier in this conversation or named in
+   the request, then *"Helpers on, because you asked for it."*.
 4. **Read 16.2 from disk and run it.** The always-on law binds throughout; a finding accepted
    for a fix is a task, and it starts under 1.7 when the user says go.
 

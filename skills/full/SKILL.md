@@ -7,9 +7,9 @@ disable-model-invocation: true
 
 # Full mode, by the user's word
 
-The user typed `/engineering-rules:full`. That picks full mode (4.3) outright, and it is the
-one way full mode ever starts: the user naming it. The classifier in 4.1 does not run, and
-no other route is considered.
+The user typed `/engineering-rules:full`. That picks full mode (4.3), the default route,
+outright by the user's word. The classifier in 4.1 does not run, and no other route is
+considered.
 
 - **Whole invocation:** `$ARGUMENTS`
 
@@ -22,8 +22,9 @@ In this order, before anything else:
    ask in this conversation, in the user's own words; when there is none either, ask for it
    through the wizard tool as 4.4 says, and ask nothing else.
 3. **Say the route and the mode in one line** (1.7, step 2): *"Full mode, because you asked for it."*, then
-   *"Agentless."* with the cost line 4.4 names when agentless is on: switched on by
-   `/engineering-rules:agentless` earlier in this conversation, or named in the request.
+   *"Agentless."* with the cost line 4.4 names, agentless being the default, unless helpers
+   were switched on by `/engineering-rules:helpers` earlier in this conversation or named in
+   the request, then *"Helpers on, because you asked for it."*.
 4. **Run the task start** (1.7, from step 3): the base commit, the ledger with full mode's
    ten items (5.1), the helper line as 1.8 records it, then 6.1 read from disk. The plan is
    the gate; nothing is built before the user's go through the wizard tool (7.1).
