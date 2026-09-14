@@ -23,7 +23,11 @@ sub-command of its own; 2.13.0 makes it the default, with full mode, and 2.13.1 
 switch to `/engineering-rules:agents`. Version 2.14.0 lets the explore-feature page carry
 one real run of the traced code: the arguments, results, errors, timings and branch
 outcomes at every function inside the excerpts, masked before they reach disk, on Bun and
-Node, from the project's own test or a request the user fires.
+Node, from the project's own test or a request the user fires. Version 2.15.0 ships a second
+skill beside the law, `generate-pseudocode`: it turns "explain how this code flow works" into
+one published page of complete pseudocode, every helper expanded and cited, with a note on
+why each line is the way it is and a closing analysis, and it triggers on its own
+description or by `/engineering-rules:generate-pseudocode`.
 
 ## What loads when
 
@@ -32,6 +36,7 @@ Node, from the project's own test or a request the user fires.
 | 1 | `name` + `description` | Always in context, about 100 words |
 | 2 | `SKILL.md`: definitions, precedence, the always-on law (`1.1` to `1.8`), the route table, the group map | Loads when the skill triggers, about 400 lines |
 | 2 | `skills/<name>/SKILL.md`: the ten sub-commands, nine routes and the agents switch, about 35 lines each | Only when the user types one; the model cannot invoke them, so they cost it nothing |
+| 2 | `skills/generate-pseudocode/SKILL.md`: the standalone pseudocode skill, with its page kit and check script beside it | Its description is always in context, about 100 words; the body loads when it triggers or the user types it, about 360 lines |
 | 3 | `references/**`: all 122 sections, one file each | Only when a phase names one |
 | hooks | `hooks/hooks.json`: eight events, three guard and anchor scripts plus the notifier | Live from install, no prompt cost; up to half a second per edit of a code file |
 
@@ -285,6 +290,10 @@ engineering-rules-plugin/
 │   │   │                                preload.bun.ts, register.node.mjs, hooks.node.mjs; tests/ with rewrite.test.sh,
 │   │   │                                rewrite.test.mjs and a sample file
 │   │   └── assets/                      the page template: page.html, page.css, page.js, page-highlight.js, page-flow.js, page-capture.js
+│   ├── generate-pseudocode/
+│   │   ├── SKILL.md                     the standalone pseudocode skill: the reading law, the page, the notes, the checks
+│   │   ├── references/                  page-kit.html (CSS, popups, the way back, theme, verbatim), worked-example.md
+│   │   └── scripts/                     check-page.sh, the pre-publish check; serve.sh, the localhost look
 │   └── engineering-rules/
 │       ├── SKILL.md                     the canonical always-on law, routes, map
 │       └── references/
@@ -350,8 +359,10 @@ Eight checks run against the plugin itself, all on `tests/harness.sh`:
   `Bash` tool.
 - `bash tests/hook-caps.test.sh` is the size cap above.
 - `bash tests/sub-commands.test.sh` fails when a route row of `SKILL.md` has no
-  `skills/<route>/SKILL.md`, when a skill directory is neither a route row nor the agents
-  switch, when a sub-command's name, user-only invocation or law load is missing or it takes
+  `skills/<route>/SKILL.md`, when a skill directory is neither a route row, the agents
+  switch nor a listed standalone skill (`generate-pseudocode`), when a standalone skill
+  loses its description or switches model invocation off, when a sub-command's name,
+  user-only invocation or law load is missing or it takes
   an argument list, when the switch lacks its `off` word, or when a section a route row cites
   has no file, and proves it can fail by planting each.
 - `bash tests/explore-feature-page.test.sh` fails when the page template loses one of the

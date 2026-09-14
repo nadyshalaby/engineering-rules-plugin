@@ -1,10 +1,11 @@
 #!/bin/bash
 # Guard: the route table in SKILL.md and the sub-command skills beside it agree (4.4). Every
 # route row names a sub-command whose skill directory exists; every skill directory beside the
-# main one is a route row or the agents switch; each sub-command has the shape 4.4 promises
-# (a name matching its directory, user-only invocation, a body that loads the main skill, no
-# argument list, and, on the switch, the off word); and every section a route row cites is a
-# file. Run: bash tests/sub-commands.test.sh
+# main one is a route row, the agents switch or a listed standalone skill; each sub-command
+# has the shape 4.4 promises (a name matching its directory, user-only invocation, a body that
+# loads the main skill, no argument list, and, on the switch, the off word); a standalone skill
+# names itself, carries the description it triggers on, keeps model invocation on and stays
+# under the cap; and every section a route row cites is a file. Run: bash tests/sub-commands.test.sh
 # SKILLS_DIR points the test at another skills directory, for a watched failure.
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=harness.sh
@@ -13,6 +14,8 @@ ROOT=$(repo_root) || exit 1
 SKILLS="${SKILLS_DIR:-$ROOT/skills}"
 MAIN_SKILL=engineering-rules
 SWITCH=agents
+# Skills that ship beside the law and trigger on their own description, space-separated.
+STANDALONE=generate-pseudocode
 REFS="$ROOT/skills/$MAIN_SKILL/references"
 LINE_CAP=500
 
@@ -50,6 +53,21 @@ switch_defects() {
   grep -q -w off "$file" || printf '%s: never reads off\n' "$SWITCH"
 }
 
+# standalone_defects <skills dir>: every listed standalone skill's departures from its shape: it
+# exists, names itself, carries the description it triggers on, keeps model invocation on and
+# stays under the cap.
+standalone_defects() {
+  for name in $(tr ' ' '\n' <<< "$STANDALONE"); do
+    file="$1/$name/SKILL.md"
+    [ -f "$file" ] || { printf '%s: no skill directory\n' "$name"; continue; }
+    [ "$(front_value "$file" name)" = "$name" ] || printf '%s: name is not %s\n' "$name" "$name"
+    [ -n "$(front_value "$file" description)" ] || printf '%s: no description\n' "$name"
+    [ "$(front_value "$file" disable-model-invocation)" != true ] || printf '%s: model invocation is disabled\n' "$name"
+    lines=$(wc -l < "$file" | tr -d ' ')
+    [ "$lines" -le "$LINE_CAP" ] || printf '%s: %s lines\n' "$name" "$lines"
+  done
+}
+
 # missing_dirs <skills dir>: every table route with no skill directory.
 missing_dirs() {
   for route in $(table_routes "$1/$MAIN_SKILL/SKILL.md"); do
@@ -57,8 +75,9 @@ missing_dirs() {
   done
 }
 
-# stray_dirs <skills dir>: every skill directory that is neither a table route nor the switch.
-stray_dirs() { comm -23 <(skill_dirs "$1") <({ table_routes "$1/$MAIN_SKILL/SKILL.md"; printf '%s\n' "$SWITCH"; } | sort); }
+# stray_dirs <skills dir>: every skill directory that is neither a table route, the switch nor a
+# listed standalone skill.
+stray_dirs() { comm -23 <(skill_dirs "$1") <({ table_routes "$1/$MAIN_SKILL/SKILL.md"; printf '%s\n' "$SWITCH"; tr ' ' '\n' <<< "$STANDALONE"; } | sort); }
 
 # all_defects <skills dir>: the shape defects of every sub-command that is present.
 all_defects() {
@@ -83,7 +102,7 @@ test_every_route_has_a_sub_command() {
 
 test_every_skill_dir_is_a_route() {
   stray=$(stray_dirs "$SKILLS")
-  assert_contains "every skill directory is a route row" "<none>" "${stray:-<none>}"
+  assert_contains "every skill directory is a route row, the switch or a listed standalone skill" "<none>" "${stray:-<none>}"
 }
 
 test_every_sub_command_has_the_shape() {
@@ -101,17 +120,26 @@ test_the_switch_has_the_shape() {
   assert_contains "the agents switch has the shape 4.4 promises" "<none>" "${defects:-<none>}"
 }
 
+test_every_standalone_has_the_shape() {
+  defects=$(standalone_defects "$SKILLS")
+  assert_contains "every standalone skill has its shape ($STANDALONE)" "<none>" "${defects:-<none>}"
+}
+
 # The checks have to be able to fail: a route with no directory, a directory with no route, a
-# sub-command that takes an argument list, a switch with no off word and a cited section with
-# no file are all named.
+# sub-command that takes an argument list, a switch with no off word, a standalone skill that
+# switches model invocation off and a cited section with no file are all named.
 test_planted_breaches_are_named() {
-  mkdir -p "$WORK/skills/$MAIN_SKILL" "$WORK/skills/ghost" "$WORK/skills/quick" "$WORK/skills/$SWITCH"
+  plant=${STANDALONE%% *}
+  mkdir -p "$WORK/skills/$MAIN_SKILL" "$WORK/skills/ghost" "$WORK/skills/quick" "$WORK/skills/$SWITCH" "$WORK/skills/$plant"
   cp "$SKILLS/$MAIN_SKILL/SKILL.md" "$WORK/skills/$MAIN_SKILL/SKILL.md"
   printf -- '---\nname: quick\narguments: [mode]\ndisable-model-invocation: true\n---\nLoads %s:%s.\n' "$MAIN_SKILL" "$MAIN_SKILL" > "$WORK/skills/quick/SKILL.md"
   printf -- '---\nname: %s\ndisable-model-invocation: true\n---\nLoads %s:%s.\n' "$SWITCH" "$MAIN_SKILL" "$MAIN_SKILL" > "$WORK/skills/$SWITCH/SKILL.md"
   assert_contains "a route with no directory is named" "full" "$(missing_dirs "$WORK/skills")"
   assert_contains "a directory with no route is named" "ghost" "$(stray_dirs "$WORK/skills")"
   assert_missing "and the switch is not" "$SWITCH" "$(stray_dirs "$WORK/skills")"
+  printf -- '---\nname: %s\ndescription: "a planted standalone"\ndisable-model-invocation: true\n---\n' "$plant" > "$WORK/skills/$plant/SKILL.md"
+  assert_missing "and a listed standalone skill is not" "$plant" "$(stray_dirs "$WORK/skills")"
+  assert_contains "a standalone skill that switches model invocation off is named" "$plant: model invocation is disabled" "$(standalone_defects "$WORK/skills")"
   assert_contains "a sub-command that takes an argument list is named" "quick: takes an argument list" "$(all_defects "$WORK/skills")"
   assert_contains "a switch with no off word is named" "$SWITCH: never reads off" "$(switch_defects "$WORK/skills")"
   tick=$(printf '\140')
@@ -124,5 +152,6 @@ test_every_skill_dir_is_a_route
 test_every_sub_command_has_the_shape
 test_every_cited_section_exists
 test_the_switch_has_the_shape
+test_every_standalone_has_the_shape
 test_planted_breaches_are_named
 report

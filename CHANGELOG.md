@@ -2,6 +2,19 @@
 
 One entry per version, newest first. The README says what the plugin is now; this file says how it got there.
 
+- **2.15.0**: a second skill ships beside the law. `skills/generate-pseudocode/` turns
+  "explain how this code flow works" into one published page of complete pseudocode: every
+  routine read from source in the session and every helper expanded down to the SQL or the
+  external call, `file:line` beside each, shaded phrases that open a note on why a line is
+  the way it is, an up-link on every routine and a return button after any jump, light and
+  dark themes, and a closing analysis in three groups (what differs, what to know before
+  changing anything, suggestions), each finding resting on a linked line. A question whose
+  answer is one routine is answered in chat in the same conventions. The skill triggers on
+  its own description or by `/engineering-rules:generate-pseudocode`; its page kit, a worked
+  example, `check-page.sh` (links, notes, the theme blocks, the mechanics against the kit,
+  the script parse) and `serve.sh` sit beside it. `tests/sub-commands.test.sh` now allows a
+  listed standalone skill and checks its shape. Built with skill-creator against three
+  prompts: with the skill 24 of 26 checks pass, without it 9.
 - **2.14.0**: the explore-feature page carries one real run. `capture-run.sh --test <the
   project's own test command>`, or `--live <its start command>` and `--stop` once the user
   has fired a request, runs the code under a load-time rewrite (a Bun preload and a Node

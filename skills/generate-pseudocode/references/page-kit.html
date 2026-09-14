@@ -1,0 +1,494 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Places Search</title>
+<!-- generate-pseudocode page kit. Copy this whole file, keep everything inside the style block
+     and the mechanics half of the script verbatim, and replace every line marked SLOT. The
+     markup between the slots is the shape every page has; the sample content shows each device once. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* ── tokens: the whole light palette on bare :root; the same names, dark, twice below ── */
+:root {
+  color-scheme: light;
+  --ground: #F4F6F5; --raised: #FFFFFF; --sunk: #EAEEEC;
+  --ink: #161E1D; --muted: #5D6B69; --faint: #93A2A0;
+  --rule: #D5DDDA; --rule-strong: #B9C5C2;
+  --flow-a: #1C5C79; --flow-a-wash: #E6EFF3;
+  --flow-b: #9E6218; --flow-b-wash: #F6EEE1;
+  --flow-c: #5A3E8E; --flow-c-wash: #EDE8F4;
+  --flow-d: #5E6A1B; --flow-d-wash: #EEF0DF;
+  --shared: #2F6B4F; --shared-wash: #E5F0EA;
+  --diverge: #94284C; --diverge-wash: #F7E7EC;
+  --note: #FBF1CF; --note-line: #D2B24B; --note-hover: #F5E7B0;
+  --shadow: 0 10px 30px rgba(22, 30, 29, 0.16);
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #111617; --raised: #191F20; --sunk: #0C1112;
+    --ink: #E3E9E7; --muted: #94A3A1; --faint: #6B7A78;
+    --rule: #2A3335; --rule-strong: #3C4749;
+    --flow-a: #63B2D4; --flow-a-wash: #15262E;
+    --flow-b: #DFA254; --flow-b-wash: #2B2114;
+    --flow-c: #B39BE0; --flow-c-wash: #211A2F;
+    --flow-d: #B9C45A; --flow-d-wash: #23261A;
+    --shared: #6FBF95; --shared-wash: #14241C;
+    --diverge: #E4718C; --diverge-wash: #2E151D;
+    --note: #3A3317; --note-line: #9C862F; --note-hover: #4A4220;
+    --shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #111617; --raised: #191F20; --sunk: #0C1112;
+  --ink: #E3E9E7; --muted: #94A3A1; --faint: #6B7A78;
+  --rule: #2A3335; --rule-strong: #3C4749;
+  --flow-a: #63B2D4; --flow-a-wash: #15262E;
+  --flow-b: #DFA254; --flow-b-wash: #2B2114;
+  --flow-c: #B39BE0; --flow-c-wash: #211A2F;
+  --flow-d: #B9C45A; --flow-d-wash: #23261A;
+  --shared: #6FBF95; --shared-wash: #14241C;
+  --diverge: #E4718C; --diverge-wash: #2E151D;
+  --note: #3A3317; --note-line: #9C862F; --note-hover: #4A4220;
+  --shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+}
+
+/* ── accents: any element with data-accent recolours itself and everything inside it ── */
+body { --accent: var(--muted); --wash: var(--sunk); }
+[data-accent="a"] { --accent: var(--flow-a); --wash: var(--flow-a-wash); }
+[data-accent="b"] { --accent: var(--flow-b); --wash: var(--flow-b-wash); }
+[data-accent="c"] { --accent: var(--flow-c); --wash: var(--flow-c-wash); }
+[data-accent="d"] { --accent: var(--flow-d); --wash: var(--flow-d-wash); }
+[data-accent="shared"] { --accent: var(--shared); --wash: var(--shared-wash); }
+[data-accent="diverge"] { --accent: var(--diverge); --wash: var(--diverge-wash); }
+
+/* ── page ── */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 980px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+kbd { font: 12px var(--mono); border: 1px solid var(--rule-strong); border-bottom-width: 2px; border-radius: 3px; padding: 1px 5px; }
+
+/* ── masthead ── */
+.masthead { border-bottom: 2px solid var(--ink); padding-block: 28px 22px; display: grid; gap: 14px; }
+.eyebrow { margin: 0; font: 500 12px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font: 500 clamp(34px, 5vw, 48px)/1.1 var(--serif); letter-spacing: -0.01em; text-wrap: balance; }
+.thesis { margin: 0; max-width: 66ch; font: 17px/1.5 var(--sans); }
+.howto { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; font: 13px/1.4 var(--sans); color: var(--muted); }
+.theme {
+  margin-left: auto; cursor: pointer; font: 500 12px/1 var(--mono); color: var(--muted);
+  background: var(--raised); border: 1px solid var(--rule-strong); border-radius: 999px; padding: 7px 10px;
+}
+.theme:hover { color: var(--ink); }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  font: 500 12px/1 var(--mono); padding: 7px 10px; border-radius: 999px;
+  background: var(--wash); color: var(--accent); text-decoration: none;
+}
+.pill:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── one section per flow, and the shared one ── */
+.part { padding-block: 36px 12px; display: grid; gap: 20px; }
+.part + .part, .findings { border-top: 1px solid var(--rule); }
+.part-head { display: grid; gap: 8px; border-left: 4px solid var(--accent); padding-left: 14px; }
+.tag {
+  width: max-content; font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent); background: var(--wash); padding: 5px 8px; border-radius: 3px;
+}
+h2 { margin: 0; font: 500 clamp(24px, 3vw, 30px)/1.2 var(--serif); text-wrap: balance; }
+.sig { font: 13px/1.4 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.lede { margin: 0; max-width: 66ch; font: 16px/1.55 var(--sans); }
+
+/* ── routines: MAIN first, then the subroutines in the order MAIN reaches them ── */
+.routine { display: grid; gap: 8px; scroll-margin-top: 16px; }
+.routine:target > pre { outline: 2px solid var(--accent); outline-offset: 3px; }
+.routine > h3 {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 0;
+  font: 600 14px/1.3 var(--mono); letter-spacing: 0.02em; color: var(--accent);
+}
+.routine > h3 .src { font-weight: 400; font-size: 12px; color: var(--faint); letter-spacing: 0; }
+.routine > h3 .ups { margin-left: auto; display: flex; gap: 6px; }
+.routine > h3 .up {
+  font-weight: 500; font-size: 11px; letter-spacing: 0.04em; color: var(--muted); text-decoration: none;
+  white-space: nowrap; border: 1px solid var(--rule-strong); border-radius: 999px; padding: 3px 8px;
+}
+.routine > h3 .up:hover { color: var(--accent); border-color: var(--accent); }
+.routine pre {
+  margin: 0; padding: 14px 16px; overflow-x: auto; tab-size: 2;
+  background: var(--sunk); border: 1px solid var(--rule); border-radius: 4px;
+  font: 13px/1.6 var(--mono); color: var(--ink);
+}
+.routine code { font: inherit; }
+.kw { color: var(--diverge); font-weight: 600; }
+.lit { color: var(--shared); }
+.c { color: var(--faint); font-style: italic; }
+a.ref { color: var(--accent); font-weight: 500; text-decoration: underline dotted; text-underline-offset: 3px; }
+a.ref:hover { text-decoration-style: solid; }
+
+/* ── the shaded phrase that opens a note ── */
+button.an {
+  font: inherit; line-height: inherit; color: inherit; white-space: inherit; cursor: pointer;
+  margin: 0; padding: 0 3px; border: 0; border-bottom: 1px solid var(--note-line); border-radius: 2px;
+  background: var(--note);
+}
+button.an:hover, button.an[aria-expanded="true"] { background: var(--note-hover); }
+
+/* ── the one popover, fixed, appended to body by the script ── */
+.pop {
+  position: fixed; z-index: 50; box-sizing: border-box; padding: 12px 14px; --ax: 50%;
+  background: var(--raised); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 6px;
+  box-shadow: var(--shadow); font: 14px/1.5 var(--sans);
+}
+.pop::after {
+  content: ""; position: absolute; width: 12px; height: 12px; left: calc(var(--ax) - 6px); bottom: -7px;
+  background: var(--raised); border: 1px solid var(--rule-strong); border-top: 0; border-left: 0;
+  transform: rotate(45deg);
+}
+.pop.below::after { bottom: auto; top: -7px; border: 1px solid var(--rule-strong); border-bottom: 0; border-right: 0; }
+.pop h4 { margin: 0 0 6px; font: 600 11.5px/1.3 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.pop p { margin: 0 0 8px; }
+.pop p:last-child { margin: 0; }
+.pop code { font: 12.5px var(--mono); background: var(--sunk); padding: 1px 4px; border-radius: 3px; }
+
+/* ── the return button: appears after a jump through a link, goes back to that line ── */
+.back {
+  position: fixed; right: 12px; bottom: 12px; z-index: 40; cursor: pointer; max-width: calc(100vw - 24px);
+  font: 500 12px/1 var(--mono); color: var(--ground); background: var(--ink); border: 0; border-radius: 999px;
+  padding: 10px 14px; box-shadow: var(--shadow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.back:hover { background: var(--muted); }
+
+/* ── findings ── */
+.findings { padding-block: 36px 12px; display: grid; gap: 26px; }
+.fin-group { display: grid; gap: 12px; }
+.group-head { margin: 0; font: 600 12px/1.4 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.fin {
+  display: grid; gap: 8px; padding: 14px 16px; background: var(--raised);
+  border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 4px;
+}
+.fin > h3 { margin: 0; font: 500 18px/1.35 var(--serif); text-wrap: balance; }
+.sev {
+  display: inline-block; vertical-align: middle; margin-left: 8px; padding: 4px 6px; border-radius: 3px;
+  font: 500 10.5px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent); background: var(--wash);
+}
+.fin .body { max-width: 66ch; font: 14.5px/1.55 var(--sans); }
+.fin .body p { margin: 0 0 8px; }
+.fin .body p:last-child { margin: 0; }
+
+/* ── colophon ── */
+.colophon { margin-top: 36px; border-top: 2px solid var(--ink); padding-block: 20px 48px; display: grid; gap: 8px; max-width: 66ch; font: 13.5px/1.55 var(--sans); color: var(--muted); }
+.colophon p { margin: 0; }
+.colophon strong { color: var(--ink); font-weight: 600; }
+.colophon code { font: 12.5px var(--mono); color: var(--ink); }
+</style>
+
+<div class="page">
+<header class="masthead">
+  <p class="eyebrow">places api · two endpoints · verified at 3f2a9c1</p>
+  <!-- SLOT above: subject · scope · verified at <ref> -->
+  <h1>Places Search</h1>
+  <!-- SLOT above: two or three words, a name, not a summary -->
+  <p class="thesis">The complete pseudocode of the nearby and the name-search endpoints, every helper they call spelled out, so nothing here assumes you have seen this codebase before.</p>
+  <div class="howto">
+    <span>Shaded words open a note</span>
+    <button class="an" data-i="demo">try one here</button>
+    <span>Press <kbd>Esc</kbd> to close</span>
+    <span>A link jumps to a routine; ↩ brings you back</span>
+    <button class="theme" id="theme" type="button">Theme: system</button>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a class="pill" data-accent="a" href="#flow-a">1 · nearby</a>
+    <a class="pill" data-accent="b" href="#flow-b">2 · search</a>
+    <a class="pill" data-accent="shared" href="#shared">shared</a>
+    <a class="pill" data-accent="diverge" href="#findings">findings</a>
+    <a class="pill" href="#colophon">colophon</a>
+  </nav>
+</header>
+
+<!-- SLOT: one section.part per flow. data-accent a, b, c, d in the order the flows are listed. -->
+<section class="part" id="flow-a" data-accent="a">
+  <div class="part-head">
+    <span class="tag">endpoint 1</span>
+    <h2>Nearby search</h2>
+    <code class="sig">GET /places/nearby?lng=&amp;lat=&amp;radius_m=</code>
+  </div>
+  <p class="lede">Finds places around a point. It is the only flow that takes a radius, and the only one that clamps it before the query runs.</p>
+  <article class="routine" id="a-main">
+    <h3>MAIN <span class="src">src/http/nearby.ts:12–58</span></h3>
+    <pre><code>INPUT
+  lng, lat                <span class="c">── required, numbers</span>
+  radius_m                <span class="c">── optional, metres</span>
+
+ 1  <span class="kw">IF</span> lng <span class="kw">OR</span> lat is missing
+      <span class="kw">RETURN</span> <span class="lit">400</span> <span class="lit">"lng and lat are required"</span>
+ 2  radius = <a class="ref" href="#a-clamp-radius">CLAMP_RADIUS</a>(radius_m)
+    <span class="c">── the query ──</span>
+ 3  rows = <a class="ref" href="#s-apply-filters">APPLY_FILTERS</a>(rows, open_now)     <span class="c">── nearby passes open_now only</span>
+ 4  <span class="kw">RETURN</span> <span class="lit">200</span> rows</code></pre>
+  </article>
+  <article class="routine" id="a-clamp-radius">
+    <h3>CLAMP_RADIUS <span class="src">src/config.ts:9–14</span></h3>
+    <pre><code>CLAMP_RADIUS(radius_m):
+  <span class="kw">IF</span> radius_m is absent
+    <span class="kw">RETURN</span> <button class="an" data-i="radius-default">DEFAULT_RADIUS_M</button>          <span class="c">── 1500 in the code</span>
+  <span class="kw">RETURN</span> clamp(radius_m, <span class="lit">100</span>, <span class="lit">5000</span>)</code></pre>
+  </article>
+</section>
+
+<section class="part" id="flow-b" data-accent="b">
+  <div class="part-head">
+    <span class="tag">endpoint 2</span>
+    <h2>Name search</h2>
+    <code class="sig">GET /places/search?q=</code>
+  </div>
+  <p class="lede">SLOT: two or three sentences on what this flow is and what only it has.</p>
+  <article class="routine" id="b-main">
+    <h3>MAIN <span class="src">SLOT file:lines</span></h3>
+    <pre><code>INPUT
+  q                       <span class="c">── SLOT</span>
+
+ 1  <span class="c">SLOT: numbered steps, two-space gutter, aligned</span></code></pre>
+  </article>
+</section>
+
+<section class="part" id="shared" data-accent="shared">
+  <div class="part-head">
+    <span class="tag">shared</span>
+    <h2>What both endpoints call</h2>
+  </div>
+  <p class="lede">Every routine both flows reach, written once. Where the callers pass different arguments, the difference lives in the caller, not here.</p>
+  <article class="routine" id="s-apply-filters">
+    <h3>APPLY_FILTERS <span class="src">src/filters.ts:4–21</span></h3>
+    <pre><code>APPLY_FILTERS(rows, open_now, category):
+  <span class="kw">IF</span> open_now
+    rows = rows <span class="kw">WHERE</span> <button class="an" data-i="open-now">is_open_at(now, row.hours)</button>
+  <span class="kw">IF</span> category
+    rows = rows <span class="kw">WHERE</span> row.category == category
+  <span class="kw">RETURN</span> rows</code></pre>
+  </article>
+</section>
+
+<section class="findings" id="findings" data-accent="diverge">
+  <div class="part-head">
+    <span class="tag">findings</span>
+    <h2>What the listings show</h2>
+  </div>
+  <div class="fin-group" data-accent="diverge">
+    <h3 class="group-head">Differences that change behaviour</h3>
+    <article class="fin">
+      <h3>Only nearby limits the radius <span class="sev">changes results</span></h3>
+      <div class="body"><p>SLOT: one or two short paragraphs. Every claim rests on a line above it, named through a link such as <a class="ref" href="#a-clamp-radius">CLAMP_RADIUS</a>.</p></div>
+    </article>
+  </div>
+  <div class="fin-group" data-accent="shared">
+    <h3 class="group-head">Things worth knowing before you change anything</h3>
+    <article class="fin">
+      <h3>SLOT: the claim, as a sentence</h3>
+      <div class="body"><p>SLOT: each paragraph names the routine it rests on, such as <a class="ref" href="#s-apply-filters">APPLY_FILTERS</a>.</p></div>
+    </article>
+  </div>
+  <div class="fin-group" data-accent="a">
+    <h3 class="group-head">Suggestions</h3>
+    <article class="fin">
+      <h3>SLOT: the claim, as a sentence <span class="sev">low</span></h3>
+      <div class="body"><p>SLOT: a suggestion still rests on a line, such as step 3 of <a class="ref" href="#a-main">MAIN</a>.</p></div>
+    </article>
+  </div>
+</section>
+
+<footer class="colophon" id="colophon">
+  <p><strong>What was read.</strong> SLOT: every file named beside a routine, opened in this session at <code>3f2a9c1</code> on <code>main</code>; the line ranges are from that reading.</p>
+  <p><strong>How it was verified.</strong> SLOT: how the routines were read and how the surprising claims were checked again against the file.</p>
+  <p><strong>Flag defaults.</strong> Every default on this page is the code's own, read from the source. A deployment can override any of them through its environment, and no such override is known here.</p>
+  <p><strong>Not verified.</strong> SLOT: what could not be checked, and why. Or: nothing on this page is guessed.</p>
+</footer>
+</div>
+
+<script>
+/* ── SLOT: the notes. One key per shaded phrase; keep "demo", it is wired to the masthead ── */
+const ANN = {
+  demo: {
+    t: "How a note works",
+    b: "<p>A shaded phrase in a listing is a button. Click it and its note opens here, on top of everything, even when the listing scrolls sideways.</p><p>A note says why the line is the way it is: the limit it protects, the bug it fixes, the number someone measured. It never repeats the line in English.</p>"
+  },
+  "radius-default": {
+    t: "Why 1500 and not a config value",
+    b: "<p>1500 metres is the number in the code. A deployment can set <code>PLACES_RADIUS_M</code> and get a different one, so treat it as the default, not the value in production.</p>"
+  },
+  "open-now": {
+    t: "Open now is judged in the server's clock",
+    b: "<p>The hours are compared with the server's time, not the caller's. A client in another time zone can be told a place is open when it is closed.</p>"
+  }
+};
+
+/* ── mechanics: keep verbatim from here to the end of the script ── */
+(function () {
+  const EDGE = 12, GAP = 10, ARROW = 16, MAX_WIDTH = 370;
+  const pop = document.createElement('div');
+  pop.className = 'pop';
+  pop.hidden = true;
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-labelledby', 'pop-title');
+  const title = document.createElement('h4');
+  title.id = 'pop-title';
+  const body = document.createElement('div');
+  body.className = 'pop-body';
+  pop.append(title, body);
+  document.body.append(pop);
+  let open = null;
+
+  function fill(key) {
+    const note = ANN[key] || { t: 'No note yet', b: '<p>This phrase has no note written for it.</p>' };
+    title.textContent = note.t;
+    const parsed = new DOMParser().parseFromString(note.b, 'text/html');
+    body.replaceChildren(...parsed.body.childNodes);
+  }
+
+  function place() {
+    if (!open) return;
+    const r = open.getBoundingClientRect();
+    const width = Math.min(MAX_WIDTH, window.innerWidth - 2 * EDGE);
+    pop.style.width = width + 'px';
+    const height = pop.offsetHeight;
+    const fitsAbove = r.top - GAP - height >= EDGE;
+    const fitsBelow = r.bottom + GAP + height <= window.innerHeight - EDGE;
+    const above = fitsAbove || (!fitsBelow && r.top > window.innerHeight - r.bottom);
+    const centre = r.left + r.width / 2;
+    const left = Math.max(EDGE, Math.min(centre - width / 2, window.innerWidth - EDGE - width));
+    pop.classList.toggle('below', !above);
+    pop.style.top = (above ? r.top - GAP - height : r.bottom + GAP) + 'px';
+    pop.style.left = left + 'px';
+    pop.style.setProperty('--ax', Math.max(ARROW, Math.min(centre - left, width - ARROW)) + 'px');
+  }
+
+  function show(button) {
+    if (open) open.setAttribute('aria-expanded', 'false');
+    open = button;
+    button.setAttribute('aria-expanded', 'true');
+    fill(button.dataset.i);
+    pop.hidden = false;
+    place();
+  }
+
+  function hide() {
+    if (!open) return;
+    open.setAttribute('aria-expanded', 'false');
+    open = null;
+    pop.hidden = true;
+  }
+
+  document.querySelectorAll('button.an').forEach(function (button) {
+    button.type = 'button';
+    button.setAttribute('aria-expanded', 'false');
+    button.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (open === button) hide(); else show(button);
+    });
+  });
+  pop.addEventListener('click', function (event) { event.stopPropagation(); });
+  document.addEventListener('click', hide);
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape' || !open) return;
+    const back = open;
+    hide();
+    back.focus();
+  });
+  window.addEventListener('resize', hide);
+  window.addEventListener('scroll', place, { capture: true, passive: true });
+})();
+
+/* ── back to the flow: an up-link on every routine, and a return button after any jump ── */
+(function () {
+  const flows = Array.from(document.querySelectorAll('section.part')).filter(function (section) {
+    return section.dataset.accent !== 'shared' && section.querySelector('.routine');
+  });
+  const mains = flows.map(function (section) {
+    const tag = section.querySelector('.tag');
+    return { section: section, id: section.querySelector('.routine').id, label: tag ? tag.textContent : 'main' };
+  });
+  document.querySelectorAll('.routine').forEach(function (routine) {
+    const section = routine.closest('section');
+    const own = mains.filter(function (main) { return main.section === section; });
+    const targets = own.length ? own : mains;
+    if (targets.some(function (main) { return main.id === routine.id; })) return;
+    const ups = document.createElement('span');
+    ups.className = 'ups';
+    targets.forEach(function (main) {
+      const link = document.createElement('a');
+      link.className = 'up';
+      link.href = '#' + main.id;
+      link.title = 'Back to the main flow';
+      link.textContent = '\u2191 ' + (own.length ? 'MAIN' : main.label);
+      ups.append(link);
+    });
+    routine.querySelector('h3').append(ups);
+  });
+
+  const stack = [];
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.className = 'back';
+  back.hidden = true;
+  document.body.append(back);
+
+  function describe(link) {
+    const section = link.closest('section');
+    const tag = section ? section.querySelector('.tag') : null;
+    const routine = link.closest('.routine');
+    const parts = [tag ? tag.textContent : ''];
+    if (routine) parts.push(routine.querySelector('h3').firstChild.textContent.trim());
+    const pre = link.closest('pre');
+    if (pre) {
+      const range = document.createRange();
+      range.setStart(pre, 0);
+      range.setEnd(link, 0);
+      const before = range.toString();
+      const step = before.slice(before.lastIndexOf('\n') + 1).match(/^\s*(\d+)\s/);
+      if (step) parts.push('step ' + step[1]);
+    }
+    return '\u21a9 Back to ' + parts.filter(Boolean).join(' \u00b7 ');
+  }
+  function refresh() {
+    if (stack.length) { back.textContent = describe(stack[stack.length - 1]); back.hidden = false; }
+    else back.hidden = true;
+  }
+  document.querySelectorAll('a.ref').forEach(function (link) {
+    link.addEventListener('click', function () { stack.push(link); refresh(); });
+  });
+  back.addEventListener('click', function () {
+    const link = stack.pop();
+    refresh();
+    if (!link) return;
+    link.scrollIntoView({ block: 'center' });
+    link.focus({ preventScroll: true });
+  });
+})();
+
+/* ── theme: system follows the host or the OS; light and dark are the reader's own choice ── */
+(function () {
+  const KEY = 'pseudocode-theme', ORDER = ['system', 'light', 'dark'];
+  const root = document.documentElement, button = document.getElementById('theme');
+  if (!button) return;
+  function stored() { try { return localStorage.getItem(KEY); } catch (err) { return null; } }
+  function remember(value) { try { localStorage.setItem(KEY, value); return true; } catch (err) { return false; } }
+  function apply(value, fromClick) {
+    if (value === 'system') { if (fromClick) root.removeAttribute('data-theme'); }
+    else root.setAttribute('data-theme', value);
+    button.textContent = 'Theme: ' + value;
+  }
+  let current = ORDER.includes(stored()) ? stored() : 'system';
+  apply(current, false);
+  button.addEventListener('click', function () {
+    current = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
+    remember(current);
+    apply(current, true);
+  });
+})();
+</script>
